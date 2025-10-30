@@ -9,6 +9,7 @@ import '../views/auth/login_view.dart';
 import '../views/auth/create_account_view.dart';
 import '../views/home/home_view.dart';
 
+
 class AppRoutes {
   static const String splash1 = '/';
   static const String splash2 = '/splash2';
@@ -18,6 +19,8 @@ class AppRoutes {
   static const String login = '/login';
   static const String createAccount = '/create-account';
   static const String home = '/home';
+
+
 
   static Map<String, WidgetBuilder> get routes {
     return {
@@ -29,6 +32,7 @@ class AppRoutes {
       login: (_) => const LoginView(),
       createAccount: (_) => const CreateAccountView(),
       home: (_) => const HomeView(),
+
     };
   }
 }
