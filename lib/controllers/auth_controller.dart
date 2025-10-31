@@ -1,4 +1,3 @@
-// lib/controllers/auth_controller.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -39,7 +38,15 @@ class AuthController {
 
   /// CREATE ACCOUNT METHOD
   /// Creates a user in Firebase Authentication and also stores data in Firestore
-  Future<User> createAccount(String name, String email, String password) async {
+  /// Includes extra optional profile fields (dob, phone, country)
+  Future<User> createAccount(
+      String name,
+      String email,
+      String password, {
+        String? dob,
+        String? phone,
+        String? country,
+      }) async {
     try {
       final credential = await _auth.createUserWithEmailAndPassword(
         email: email,
@@ -52,11 +59,16 @@ class AuthController {
       // Update displayName for local Firebase user object
       await user.updateDisplayName(name);
 
-      // Create document in Firestore
+      // Create Firestore document with additional fields
       await _firestore.collection('users').doc(user.uid).set({
         'uid': user.uid,
         'name': name,
         'email': email,
+        'dob': dob ?? '',
+        'phone': phone ?? '',
+        'country': country ?? '',
+        'followings': [],
+        'savedArticles': [],
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -74,6 +86,29 @@ class AuthController {
       }
     } catch (e) {
       throw 'Unexpected error: $e';
+    }
+  }
+
+  /// UPDATE USER DETAILS METHOD (optional utility)
+  Future<void> updateUserDetails({
+    required String uid,
+    String? name,
+    String? dob,
+    String? phone,
+    String? country,
+  }) async {
+    try {
+      final Map<String, dynamic> updates = {};
+      if (name != null) updates['name'] = name;
+      if (dob != null) updates['dob'] = dob;
+      if (phone != null) updates['phone'] = phone;
+      if (country != null) updates['country'] = country;
+
+      if (updates.isNotEmpty) {
+        await _firestore.collection('users').doc(uid).update(updates);
+      }
+    } catch (e) {
+      throw 'Failed to update user details: $e';
     }
   }
 
