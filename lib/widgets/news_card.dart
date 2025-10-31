@@ -53,12 +53,14 @@ class NewsCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    article.title ?? 'No Title',
+                    article.title.isNotEmpty ? article.title : 'No Title',
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    article.description ?? 'No description available.',
+                    article.description.isNotEmpty
+                        ? article.description
+                        : 'No description available.',
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(color: Colors.black87),

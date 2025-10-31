@@ -4,9 +4,9 @@ class NewsArticle {
   final String? imageUrl;
   final String? link;
   final String? category;
-  final String? source;   // new
-  final String? pubDate;  // new
-  final String? content;  // new
+  final String? source;
+  final String? pubDate;
+  final String? content;
 
   NewsArticle({
     required this.title,
@@ -23,16 +23,16 @@ class NewsArticle {
     return NewsArticle(
       title: json['title'] ?? '',
       description: json['description'] ?? '',
-      imageUrl: json['image_url'],
-      link: json['link'],
+      imageUrl: json['image_url'] ?? json['urlToImage'],
+      link: json['link'] ?? json['url'],
       category: (json['category'] != null && json['category'] is List)
           ? (json['category'] as List).isNotEmpty
           ? json['category'][0]
           : ''
-          : '',
-      source: json['source'] ?? '',                       // new
-      pubDate: json['pubDate'] ?? json['publishedAt'],    // new: check your API key
-      content: json['content'] ?? '',                     // new
+          : (json['category'] ?? ''),
+      source: json['source'] ?? '',
+      pubDate: json['pubDate'] ?? json['publishedAt'],
+      content: json['content'] ?? '',
     );
   }
 }

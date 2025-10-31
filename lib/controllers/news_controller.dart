@@ -8,6 +8,7 @@ class NewsController extends ChangeNotifier {
   List<NewsArticle> newsList = [];
   bool isLoading = false;
   String currentCategory = 'forYou';
+  String currentQuery = ''; // added to track search queries
 
   /// Fetch news from API with optional category or search query
   Future<void> fetchNews({String category = 'forYou', String query = ''}) async {
@@ -16,6 +17,9 @@ class NewsController extends ChangeNotifier {
       notifyListeners();
 
       currentCategory = category;
+      currentQuery = query;
+
+      // Fetch from API (same function handles both search and headlines)
       final articles = await _apiService.fetchNews(category: category, query: query);
       newsList = articles;
     } catch (e) {
@@ -25,5 +29,17 @@ class NewsController extends ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
+  }
+
+  /// Reset to top headlines (used when search is cleared)
+  Future<void> fetchTopHeadlines() async {
+    await fetchNews(category: 'top');
+  }
+
+  /// Clear current search or category results
+  void clearNews() {
+    newsList = [];
+    currentQuery = '';
+    notifyListeners();
   }
 }

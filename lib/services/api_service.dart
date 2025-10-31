@@ -6,24 +6,28 @@ import '../utils/constants.dart';
 class ApiService {
   Future<List<NewsArticle>> fetchNews({String category = 'forYou', String query = ''}) async {
     try {
+      // Base URL setup
       String url = '${Constants.baseUrl}?apikey=${Constants.apiKey}&language=en';
 
+      // Prioritize query → search results
       if (query.isNotEmpty) {
         url += '&q=$query';
-      } else if (category != 'forYou') {
+      }
+      // Otherwise category-based or top headlines
+      else if (category != 'forYou' && category != 'top') {
         url += '&category=$category';
+      } else {
+        url += '&category=top';
       }
 
-      print('Fetching news from URL: $url'); // debug
+      print('Fetching news from URL: $url');
 
       final response = await http.get(Uri.parse(url));
-      print('Status code: ${response.statusCode}');
-      print('Response body: ${response.body}');
+      print('Status Code: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
-        // Adjust for different APIs
         List articles = [];
         if (data['results'] != null) {
           articles = data['results'];
@@ -31,7 +35,7 @@ class ApiService {
           articles = data['articles'];
         }
 
-        // Junior Mode filtering (safe content)
+        // Junior mode filter (keep your old safe content logic)
         if (category == 'junior') {
           articles = articles.where((a) {
             final desc = (a['description'] ?? '').toString().toLowerCase();
