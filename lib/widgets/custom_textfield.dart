@@ -1,4 +1,3 @@
-// lib/widgets/custom_textfield.dart
 import 'package:flutter/material.dart';
 
 class CustomTextField extends StatefulWidget {
@@ -9,6 +8,10 @@ class CustomTextField extends StatefulWidget {
   final String? Function(String?)? validator;
   final TextInputAction? textInputAction;
 
+  // NEW parameters
+  final bool isReadOnly;
+  final VoidCallback? onTap;
+
   const CustomTextField({
     super.key,
     required this.controller,
@@ -17,6 +20,8 @@ class CustomTextField extends StatefulWidget {
     this.isPassword = false,
     this.validator,
     this.textInputAction,
+    this.isReadOnly = false, // default false
+    this.onTap, // optional onTap
   });
 
   @override
@@ -34,24 +39,53 @@ class _CustomTextFieldState extends State<CustomTextField> {
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
-      controller: widget.controller,
-      keyboardType: widget.textInputType,
-      obscureText: _obscure,
-      textInputAction: widget.textInputAction ?? TextInputAction.next,
-      validator: widget.validator,
-      decoration: InputDecoration(
-        hintText: widget.hintText,
-        hintStyle: const TextStyle(color: Colors.white70),
-        filled: true,
-        fillColor: const Color(0x801E5255),
-        border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-        suffixIcon: widget.isPassword
-            ? IconButton(
-          icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility, color: Colors.white70),
-          onPressed: () => setState(() => _obscure = !_obscure),
-        )
-            : null,
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26.withOpacity(0.2),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: widget.controller,
+        keyboardType: widget.textInputType,
+        obscureText: _obscure,
+        textInputAction: widget.textInputAction ?? TextInputAction.next,
+        validator: widget.validator,
+        style: const TextStyle(color: Colors.black),
+        readOnly: widget.isReadOnly,
+        onTap: widget.onTap,
+        decoration: InputDecoration(
+          hintText: widget.hintText,
+          hintStyle: TextStyle(color: Colors.grey[600]),
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.white, width: 2),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.white, width: 2),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.white.withOpacity(0.9), width: 2.5),
+          ),
+          suffixIcon: widget.isPassword
+              ? IconButton(
+            icon: Icon(
+              _obscure ? Icons.visibility_off : Icons.visibility,
+              color: Colors.grey[600],
+            ),
+            onPressed: () => setState(() => _obscure = !_obscure),
+          )
+              : null,
+        ),
       ),
     );
   }

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:country_picker/country_picker.dart';
 import '../../utils/constants.dart';
 import '../auth/signup_view.dart';
+import '../../widgets/custom_textfield.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -23,9 +24,16 @@ class _ProfileViewState extends State<ProfileView> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _countryController = TextEditingController();
 
   String? _country;
   bool _isLoading = false;
+
+  // Default counts
+  int _followings = 0;
+  int _saved = 0;
+  int _bookmarks = 0;
+  int _chats = 0;
 
   @override
   void initState() {
@@ -45,6 +53,12 @@ class _ProfileViewState extends State<ProfileView> {
         _dobController.text = data?['dob'] ?? '';
         _phoneController.text = data?['phone'] ?? '';
         _country = data?['country'];
+        _countryController.text = _country ?? '';
+
+        _followings = data?['followings'] ?? 0;
+        _saved = data?['saved'] ?? 0;
+        _bookmarks = data?['bookmarks'] ?? 0;
+        _chats = data?['chats'] ?? 0;
       });
     }
   }
@@ -96,7 +110,10 @@ class _ProfileViewState extends State<ProfileView> {
       context: context,
       showPhoneCode: false,
       onSelect: (Country country) {
-        setState(() => _country = country.name);
+        setState(() {
+          _country = country.name;
+          _countryController.text = _country ?? '';
+        });
       },
     );
   }
@@ -111,16 +128,40 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
+  Widget _buildStatsBox(String label, int count) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Text(count.toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 4),
+            Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Constants.backgroundColor,
       appBar: AppBar(
         backgroundColor: Constants.accentColor,
-        title: const Text(
-          'Profile',
-          style: TextStyle(color: Colors.white),
-        ),
+        title: const Text('Profile', style: TextStyle(color: Colors.white)),
         centerTitle: true,
         actions: [
           IconButton(
@@ -132,128 +173,83 @@ class _ProfileViewState extends State<ProfileView> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              const CircleAvatar(
-                radius: 45,
-                backgroundColor: Constants.accentColor,
-                child: Icon(Icons.person, color: Colors.white, size: 50),
-              ),
-              const SizedBox(height: 15),
-
-              // Followings and Saved
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Column(
-                    children: const [
-                      Icon(Icons.people, color: Constants.accentColor),
-                      SizedBox(height: 5),
-                      Text('Followings', style: TextStyle(fontSize: 14)),
-                    ],
-                  ),
-                  const SizedBox(width: 40),
-                  Column(
-                    children: const [
-                      Icon(Icons.bookmark, color: Constants.accentColor),
-                      SizedBox(height: 5),
-                      Text('Saved', style: TextStyle(fontSize: 14)),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 25),
-
-              // Name
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) =>
-                value!.isEmpty ? 'Enter name' : null,
-              ),
-              const SizedBox(height: 15),
-
-              // Email (read-only)
-              TextFormField(
-                controller: _emailController,
-                enabled: false,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 15),
-
-              // DOB
-              TextFormField(
-                controller: _dobController,
-                readOnly: true,
-                onTap: _pickDOB,
-                decoration: const InputDecoration(
-                  labelText: 'Date of Birth',
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(),
-                  suffixIcon: Icon(Icons.calendar_today),
-                ),
-              ),
-              const SizedBox(height: 15),
-
-              // Phone
-              TextFormField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Mobile Number',
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 15),
-
-              // Country picker
-              InkWell(
-                onTap: _pickCountry,
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'Country',
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(),
-                  ),
-                  child: Text(
-                    _country ?? 'Select your country',
-                    style: TextStyle(
-                      color: _country == null ? Colors.grey : Colors.black87,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 25),
-
-              ElevatedButton(
-                onPressed: _updateUserProfile,
-                style: ElevatedButton.styleFrom(
+          : SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                const CircleAvatar(
+                  radius: 45,
                   backgroundColor: Constants.accentColor,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 40, vertical: 12),
+                  child: Icon(Icons.person, color: Colors.white, size: 50),
                 ),
-                child: const Text('Save Changes',
-                    style: TextStyle(color: Colors.white)),
-              ),
-            ],
+                const SizedBox(height: 15),
+
+                // Stats box
+                Row(
+                  children: [
+                    _buildStatsBox('Followings', _followings),
+                    _buildStatsBox('Saved', _saved),
+                    _buildStatsBox('Bookmarks', _bookmarks),
+                    _buildStatsBox('Chats', _chats),
+                  ],
+                ),
+                const SizedBox(height: 25),
+
+                // Name
+                CustomTextField(
+                  controller: _nameController,
+                  hintText: 'Name',
+                  validator: (value) => value!.isEmpty ? 'Enter name' : null,
+                ),
+                const SizedBox(height: 15),
+
+                // Email (read-only)
+                CustomTextField(
+                  controller: _emailController,
+                  hintText: 'Email',
+                  isReadOnly: true,
+                ),
+                const SizedBox(height: 15),
+
+                // DOB
+                CustomTextField(
+                  controller: _dobController,
+                  hintText: 'Date of Birth',
+                  isReadOnly: true,
+                  onTap: _pickDOB,
+                ),
+                const SizedBox(height: 15),
+
+                // Phone
+                CustomTextField(
+                  controller: _phoneController,
+                  hintText: 'Mobile Number',
+                  textInputType: TextInputType.phone,
+                ),
+                const SizedBox(height: 15),
+
+                // Country
+                CustomTextField(
+                  controller: _countryController,
+                  hintText: 'Country',
+                  isReadOnly: true,
+                  onTap: _pickCountry,
+                ),
+                const SizedBox(height: 25),
+
+                ElevatedButton(
+                  onPressed: _updateUserProfile,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Constants.accentColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                  ),
+                  child: const Text('Save Changes', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
           ),
         ),
       ),

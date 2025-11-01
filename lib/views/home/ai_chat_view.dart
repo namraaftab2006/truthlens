@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../utils/constants.dart';
+import '../../services/ai_service.dart';
 
-/// AI Chat View
-/// Allows users to chat with the AI, send headlines or queries,
-/// and (in future) get intelligent responses via ML API.
 class AiChatView extends StatefulWidget {
-  final String? initialMessage; // in case we share a headline from home
+  final String? initialMessage;
 
   const AiChatView({super.key, this.initialMessage});
 
@@ -16,14 +14,11 @@ class AiChatView extends StatefulWidget {
 class _AiChatViewState extends State<AiChatView> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-
-  // Simple message list for UI
   final List<Map<String, String>> _messages = [];
 
   @override
   void initState() {
     super.initState();
-    // If user comes from Home with a shared headline
     if (widget.initialMessage != null && widget.initialMessage!.isNotEmpty) {
       _addMessage(widget.initialMessage!, isUser: true);
       _simulateBotResponse(widget.initialMessage!);
@@ -32,13 +27,9 @@ class _AiChatViewState extends State<AiChatView> {
 
   void _addMessage(String message, {required bool isUser}) {
     setState(() {
-      _messages.add({
-        'sender': isUser ? 'user' : 'bot',
-        'message': message,
-      });
+      _messages.add({'sender': isUser ? 'user' : 'bot', 'message': message});
     });
 
-    // Auto-scroll to bottom
     Future.delayed(const Duration(milliseconds: 100), () {
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent + 100,
@@ -48,14 +39,17 @@ class _AiChatViewState extends State<AiChatView> {
     });
   }
 
-  /// Temporary mock function (later replaced by ML API call)
+  /// Bot response: either API or fallback
   void _simulateBotResponse(String userMessage) async {
-    await Future.delayed(const Duration(seconds: 1));
-    _addMessage(
-      "🤖 This is a demo response. Once the ML API is integrated, "
-          "I’ll summarize or discuss: \"$userMessage\"",
-      isUser: false,
-    );
+    String reply;
+
+    try {
+      reply = await AiService.sendMessage(userMessage);
+    } catch (_) {
+      reply = "🤖 This is a demo response. ML API not available yet.";
+    }
+
+    _addMessage(reply, isUser: false);
   }
 
   void _handleSend() {
@@ -64,8 +58,6 @@ class _AiChatViewState extends State<AiChatView> {
 
     _addMessage(text, isUser: true);
     _messageController.clear();
-
-    // Simulate bot response for now
     _simulateBotResponse(text);
   }
 
