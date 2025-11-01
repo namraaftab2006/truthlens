@@ -24,7 +24,7 @@ class SignupView extends StatelessWidget {
                 const LogoWidget(width: 300, height: 300),
                 const SizedBox(height: 28),
 
-                // Sign Up button -> create account view
+                // Sign Up button
                 SizedBox(
                   width: double.infinity,
                   height: 52,

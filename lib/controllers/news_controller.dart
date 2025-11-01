@@ -19,7 +19,6 @@ class NewsController extends ChangeNotifier {
       currentCategory = category;
       currentQuery = query;
 
-      // Fetch from API (same function handles both search and headlines)
       final articles = await _apiService.fetchNews(category: category, query: query);
       newsList = articles;
     } catch (e) {
@@ -31,12 +30,11 @@ class NewsController extends ChangeNotifier {
     }
   }
 
-  /// Reset to top headlines (used when search is cleared)
+
   Future<void> fetchTopHeadlines() async {
     await fetchNews(category: 'top');
   }
 
-  /// Clear current search or category results
   void clearNews() {
     newsList = [];
     currentQuery = '';

@@ -3,7 +3,7 @@ class NewsArticle {
   final String description;
   final String? imageUrl;
   final String? link;
-  final String? category;
+  final String category;
   final String? source;
   final String? pubDate;
   final String? content;
@@ -13,7 +13,7 @@ class NewsArticle {
     required this.description,
     this.imageUrl,
     this.link,
-    this.category,
+    required this.category,
     this.source,
     this.pubDate,
     this.content,

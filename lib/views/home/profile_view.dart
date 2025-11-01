@@ -17,7 +17,6 @@ class ProfileView extends StatefulWidget {
 class _ProfileViewState extends State<ProfileView> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _nameController = TextEditingController();
@@ -29,7 +28,6 @@ class _ProfileViewState extends State<ProfileView> {
   String? _country;
   bool _isLoading = false;
 
-  // Default counts
   int _followings = 0;
   int _saved = 0;
   int _bookmarks = 0;
@@ -55,8 +53,8 @@ class _ProfileViewState extends State<ProfileView> {
         _country = data?['country'];
         _countryController.text = _country ?? '';
 
-        _followings = data?['followings'] ?? 0;
-        _saved = data?['saved'] ?? 0;
+        _followings = (data?['followings'] as List?)?.length ?? 0;
+        _saved = (data?['savedArticles'] as List?)?.length ?? 0;
         _bookmarks = data?['bookmarks'] ?? 0;
         _chats = data?['chats'] ?? 0;
       });
@@ -82,10 +80,10 @@ class _ProfileViewState extends State<ProfileView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile updated successfully!')),
       );
+      await _loadUserData();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -109,7 +107,7 @@ class _ProfileViewState extends State<ProfileView> {
     showCountryPicker(
       context: context,
       showPhoneCode: false,
-      onSelect: (Country country) {
+      onSelect: (country) {
         setState(() {
           _country = country.name;
           _countryController.text = _country ?? '';
@@ -146,9 +144,13 @@ class _ProfileViewState extends State<ProfileView> {
         ),
         child: Column(
           children: [
-            Text(count.toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(count.toString(),
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 4),
-            Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            Text(label,
+                style:
+                const TextStyle(fontSize: 12, color: Colors.grey)),
           ],
         ),
       ),
@@ -161,7 +163,8 @@ class _ProfileViewState extends State<ProfileView> {
       backgroundColor: Constants.backgroundColor,
       appBar: AppBar(
         backgroundColor: Constants.accentColor,
-        title: const Text('Profile', style: TextStyle(color: Colors.white)),
+        title:
+        const Text('Profile', style: TextStyle(color: Colors.white)),
         centerTitle: true,
         actions: [
           IconButton(
@@ -183,11 +186,10 @@ class _ProfileViewState extends State<ProfileView> {
                 const CircleAvatar(
                   radius: 45,
                   backgroundColor: Constants.accentColor,
-                  child: Icon(Icons.person, color: Colors.white, size: 50),
+                  child: Icon(Icons.person,
+                      color: Colors.white, size: 50),
                 ),
                 const SizedBox(height: 15),
-
-                // Stats box
                 Row(
                   children: [
                     _buildStatsBox('Followings', _followings),
@@ -197,24 +199,19 @@ class _ProfileViewState extends State<ProfileView> {
                   ],
                 ),
                 const SizedBox(height: 25),
-
-                // Name
                 CustomTextField(
                   controller: _nameController,
                   hintText: 'Name',
-                  validator: (value) => value!.isEmpty ? 'Enter name' : null,
+                  validator: (v) =>
+                  v!.isEmpty ? 'Enter name' : null,
                 ),
                 const SizedBox(height: 15),
-
-                // Email (read-only)
                 CustomTextField(
                   controller: _emailController,
                   hintText: 'Email',
                   isReadOnly: true,
                 ),
                 const SizedBox(height: 15),
-
-                // DOB
                 CustomTextField(
                   controller: _dobController,
                   hintText: 'Date of Birth',
@@ -222,16 +219,12 @@ class _ProfileViewState extends State<ProfileView> {
                   onTap: _pickDOB,
                 ),
                 const SizedBox(height: 15),
-
-                // Phone
                 CustomTextField(
                   controller: _phoneController,
                   hintText: 'Mobile Number',
                   textInputType: TextInputType.phone,
                 ),
                 const SizedBox(height: 15),
-
-                // Country
                 CustomTextField(
                   controller: _countryController,
                   hintText: 'Country',
@@ -239,14 +232,15 @@ class _ProfileViewState extends State<ProfileView> {
                   onTap: _pickCountry,
                 ),
                 const SizedBox(height: 25),
-
                 ElevatedButton(
                   onPressed: _updateUserProfile,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Constants.accentColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 40, vertical: 12),
                   ),
-                  child: const Text('Save Changes', style: TextStyle(color: Colors.white)),
+                  child: const Text('Save Changes',
+                      style: TextStyle(color: Colors.white)),
                 ),
               ],
             ),

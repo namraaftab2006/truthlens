@@ -36,7 +36,7 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
   int _bottomNavIndex = 0;
 
   final List<Widget> _bottomNavPages = [
-    const Placeholder(), // home content
+    const Placeholder(),
     const SearchView(),
     const AiChatView(),
     const ProfileView(),
