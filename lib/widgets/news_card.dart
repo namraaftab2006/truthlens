@@ -8,7 +8,7 @@ import '../views/home/news_detail_view.dart';
 
 class NewsCard extends StatefulWidget {
   final NewsArticle article;
-  final bool isJunior; // for junior mode colorful design
+  final bool isJunior;
   const NewsCard({super.key, required this.article, this.isJunior = false});
 
   @override
