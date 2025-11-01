@@ -3,11 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../routes/app_routes.dart';
 
-/// Controller for splash screens.
-/// Handles timed navigation between splash screens and signup view.
-/// Each splash screen remains responsible for its own UI and animation.
+
 class SplashController {
-  /// Starts a timer and navigates to the next splash based on [currentSplash].
   void startSplashTimer(
       BuildContext context, {
         required int currentSplash,

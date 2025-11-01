@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import '../models/news_model.dart';
 import '../utils/constants.dart';
 import '../views/home/news_detail_view.dart';
@@ -18,6 +19,7 @@ class NewsCard extends StatefulWidget {
 class _NewsCardState extends State<NewsCard> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FlutterTts flutterTts = FlutterTts();
 
   bool isLiked = false;
   bool isSaved = false;
@@ -28,6 +30,19 @@ class _NewsCardState extends State<NewsCard> {
   void initState() {
     super.initState();
     _loadArticleStatus();
+    _setupTts();
+  }
+
+  void _setupTts() async {
+    await flutterTts.setLanguage("en-IN");
+    await flutterTts.setPitch(1.0);
+    await flutterTts.setSpeechRate(0.9);
+  }
+
+  @override
+  void dispose() {
+    flutterTts.stop();
+    super.dispose();
   }
 
   Future<void> _loadArticleStatus() async {
@@ -44,10 +59,8 @@ class _NewsCardState extends State<NewsCard> {
       });
     }
 
-    final userDoc =
-    await _firestore.collection('users').doc(user.uid).get();
-    final savedList =
-    List<String>.from(userDoc.data()?['savedArticles'] ?? []);
+    final userDoc = await _firestore.collection('users').doc(user.uid).get();
+    final savedList = List<String>.from(userDoc.data()?['savedArticles'] ?? []);
     setState(() => isSaved = savedList.contains(widget.article.link ?? ''));
   }
 
@@ -55,9 +68,7 @@ class _NewsCardState extends State<NewsCard> {
     final user = _auth.currentUser;
     if (user == null) return;
 
-    final articleRef =
-    _firestore.collection('articles').doc(widget.article.link);
-
+    final articleRef = _firestore.collection('articles').doc(widget.article.link);
     setState(() {
       isLiked = !isLiked;
       likeCount += isLiked ? 1 : -1;
@@ -105,8 +116,7 @@ class _NewsCardState extends State<NewsCard> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        final TextEditingController commentController =
-        TextEditingController();
+        final TextEditingController commentController = TextEditingController();
 
         return StatefulBuilder(
           builder: (context, setModalState) {
@@ -120,9 +130,7 @@ class _NewsCardState extends State<NewsCard> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Comments',
-                      style:
-                      TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  const Text('Comments', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                   const SizedBox(height: 10),
                   SizedBox(
                     height: 200,
@@ -131,8 +139,7 @@ class _NewsCardState extends State<NewsCard> {
                         : ListView.builder(
                       itemCount: comments.length,
                       itemBuilder: (_, i) => ListTile(
-                        leading: const Icon(Icons.person,
-                            color: Colors.grey),
+                        leading: const Icon(Icons.person, color: Colors.grey),
                         title: Text(comments[i]['text']),
                       ),
                     ),
@@ -150,8 +157,7 @@ class _NewsCardState extends State<NewsCard> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.send,
-                            color: Constants.accentColor),
+                        icon: const Icon(Icons.send, color: Constants.accentColor),
                         onPressed: () async {
                           if (commentController.text.trim().isNotEmpty) {
                             final newComment = {
@@ -159,10 +165,7 @@ class _NewsCardState extends State<NewsCard> {
                               'text': commentController.text.trim(),
                               'timestamp': FieldValue.serverTimestamp(),
                             };
-
-                            setModalState(() {
-                              comments.add(newComment);
-                            });
+                            setModalState(() => comments.add(newComment));
 
                             await _firestore
                                 .collection('articles')
@@ -172,7 +175,6 @@ class _NewsCardState extends State<NewsCard> {
                               'title': widget.article.title,
                               'link': widget.article.link,
                             }, SetOptions(merge: true));
-
                             commentController.clear();
                           }
                         },
@@ -190,26 +192,34 @@ class _NewsCardState extends State<NewsCard> {
 
   @override
   Widget build(BuildContext context) {
+    final pastelColors = [
+      Colors.pink[50],
+      Colors.blue[50],
+      Colors.green[50],
+      Colors.orange[50],
+      Colors.purple[50],
+      Colors.teal[50],
+    ];
+    final bgColor = widget.isJunior
+        ? (pastelColors[(widget.article.title.hashCode) % pastelColors.length] ?? Colors.yellow[50])
+        : Constants.backgroundColor;
+
     return InkWell(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(
-            builder: (_) => NewsDetailView(article: widget.article)),
+        MaterialPageRoute(builder: (_) => NewsDetailView(article: widget.article)),
       ),
       child: Card(
-        color:
-        widget.isJunior ? Colors.yellow[50] : Constants.backgroundColor,
+        color: bgColor,
         margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         elevation: 4,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (widget.article.imageUrl != null &&
-                widget.article.imageUrl!.isNotEmpty)
+            if (widget.article.imageUrl != null && widget.article.imageUrl!.isNotEmpty)
               ClipRRect(
-                borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(15)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
                 child: Image.network(
                   widget.article.imageUrl!,
                   height: 180,
@@ -223,11 +233,9 @@ class _NewsCardState extends State<NewsCard> {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: Colors.grey[300],
-                  borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(15)),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
                 ),
-                child: const Icon(Icons.image_not_supported,
-                    size: 60, color: Colors.grey),
+                child: const Icon(Icons.image_not_supported, size: 60, color: Colors.grey),
               ),
             Padding(
               padding: const EdgeInsets.all(12),
@@ -238,8 +246,7 @@ class _NewsCardState extends State<NewsCard> {
                     widget.article.title.isNotEmpty
                         ? widget.article.title
                         : 'No Title',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -258,11 +265,8 @@ class _NewsCardState extends State<NewsCard> {
                         children: [
                           IconButton(
                             icon: Icon(
-                              isLiked
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              color:
-                              isLiked ? Colors.red : Constants.likeColor,
+                              isLiked ? Icons.favorite : Icons.favorite_border,
+                              color: isLiked ? Colors.red : Constants.likeColor,
                             ),
                             onPressed: _toggleLike,
                           ),
@@ -271,26 +275,37 @@ class _NewsCardState extends State<NewsCard> {
                       ),
                       IconButton(
                         icon: Icon(
-                          isSaved
-                              ? Icons.bookmark
-                              : Icons.bookmark_border,
-                          color:
-                          isSaved ? Constants.accentColor : Colors.grey,
+                          isSaved ? Icons.bookmark : Icons.bookmark_border,
+                          color: isSaved ? Constants.accentColor : Colors.grey,
                         ),
                         onPressed: _toggleSave,
                       ),
                       IconButton(
-                        icon:
-                        const Icon(Icons.comment, color: Colors.grey),
+                        icon: const Icon(Icons.comment, color: Colors.grey),
                         onPressed: _showCommentsSheet,
                       ),
                       IconButton(
-                        icon: const Icon(Icons.share,
-                            color: Constants.accentColor),
+                        icon: const Icon(Icons.share, color: Constants.accentColor),
                         onPressed: () {
-                          if (widget.article.link != null &&
-                              widget.article.link!.isNotEmpty) {
+                          if (widget.article.link != null && widget.article.link!.isNotEmpty) {
                             Share.share(widget.article.link!);
+                          }
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.volume_up, color: Constants.accentColor),
+                        onPressed: () async {
+                          try {
+                            await flutterTts.stop();
+                            await flutterTts.awaitSpeakCompletion(true);
+                            await flutterTts.speak(
+                              '${widget.article.title}. ${widget.article.description}',
+                            );
+                          } catch (e) {
+                            debugPrint('TTS Error: $e');
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Unable to start voice: $e')),
+                            );
                           }
                         },
                       ),

@@ -56,10 +56,10 @@ class AuthController {
 
       if (user == null) throw 'Account creation failed. Please try again.';
 
-      // Update displayName for local Firebase user object
+
       await user.updateDisplayName(name);
 
-      // Create Firestore document with additional fields
+
       await _firestore.collection('users').doc(user.uid).set({
         'uid': user.uid,
         'name': name,
@@ -89,7 +89,7 @@ class AuthController {
     }
   }
 
-  /// UPDATE USER DETAILS METHOD (optional utility)
+
   Future<void> updateUserDetails({
     required String uid,
     String? name,
@@ -112,7 +112,7 @@ class AuthController {
     }
   }
 
-  /// SIGN OUT METHOD
+
   Future<void> signOut() async {
     try {
       await _auth.signOut();

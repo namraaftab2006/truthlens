@@ -17,30 +17,43 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
-  final List<String> categories = ['forYou', 'sports', 'entertainment', 'politics', 'junior'];
-  final List<String> categoryNames = ['For You', 'Sports', 'Entertainment', 'Politics', 'Junior Mode'];
+  int _bottomNavIndex = 0;
+
+  final List<String> categories = [
+    'forYou',
+    'sports',
+    'entertainment',
+    'politics',
+  ];
+
+  final List<Map<String, dynamic>> categoryData = [
+    {'name': 'For You', 'icon': Icons.star},
+    {'name': 'Sports', 'icon': Icons.sports_soccer},
+    {'name': 'Entertainment', 'icon': Icons.movie},
+    {'name': 'Politics', 'icon': Icons.account_balance},
+  ];
+
+  final List<Widget> _bottomNavPages = const [
+    Placeholder(),
+    SearchView(),
+    AiChatView(),
+    ProfileView(),
+  ];
 
   @override
   void initState() {
     super.initState();
-    final controller = Provider.of<NewsController>(context, listen: false);
-    controller.fetchNews(category: categories[_currentIndex]);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<NewsController>(context, listen: false)
+          .fetchNews(category: categories[_currentIndex]);
+    });
   }
 
   void _onCategorySelected(int index) {
     setState(() => _currentIndex = index);
-    final controller = Provider.of<NewsController>(context, listen: false);
-    controller.fetchNews(category: categories[index]);
+    Provider.of<NewsController>(context, listen: false)
+        .fetchNews(category: categories[index]);
   }
-
-  int _bottomNavIndex = 0;
-
-  final List<Widget> _bottomNavPages = [
-    const Placeholder(),
-    const SearchView(),
-    const AiChatView(),
-    const ProfileView(),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -54,105 +67,152 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
           "truthlens+",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        centerTitle: false,
         elevation: 5,
       ),
       body: _bottomNavIndex == 0
           ? Column(
         children: [
-          // Category tabs
-          Container(
-            height: 50,
-            color: Constants.backgroundColor,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: categories.length,
-              itemBuilder: (context, index) {
-                final isSelected = index == _currentIndex;
-                return GestureDetector(
-                  onTap: () => _onCategorySelected(index),
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isSelected ? Constants.accentColor : Colors.white,
-                      borderRadius: BorderRadius.circular(25),
-                      border: Border.all(color: Constants.accentColor),
-                    ),
-                    child: Text(
-                      categoryNames[index],
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : Constants.accentColor,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
+          _buildCategoryTabs(),
           const SizedBox(height: 8),
-          // News list
           Expanded(
             child: controller.isLoading
                 ? const ShimmerLoader()
                 : RefreshIndicator(
               onRefresh: () async {
-                await controller.fetchNews(category: categories[_currentIndex]);
+                await controller.fetchNews(
+                    category: categories[_currentIndex]);
               },
+              // 🔹 UPDATED PART BELOW 🔹
               child: ListView.builder(
                 itemCount: controller.newsList.length,
                 itemBuilder: (context, index) {
                   final article = controller.newsList[index];
-                  return NewsCard(article: article);
+                  final isJuniorMode =
+                      controller.currentCategory == 'junior';
+                  return NewsCard(
+                      article: article, isJunior: isJuniorMode);
                 },
               ),
+              // 🔹 UPDATED PART ENDS 🔹
             ),
           ),
         ],
       )
           : _bottomNavPages[_bottomNavIndex],
+      bottomNavigationBar: _buildBottomNavBar(),
+    );
+  }
 
-      // Custom Bottom Navigation Bar
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Constants.accentColor,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 10,
-            )
-          ],
-        ),
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildNavItem(Icons.home, 0),
-            _buildNavItem(Icons.search, 1),
-            _buildNavItem(Icons.smart_toy_outlined, 2),
-            _buildNavItem(Icons.person, 3),
-          ],
-        ),
+  /// 🌈 Visually enhanced category bar
+  Widget _buildCategoryTabs() {
+    return Container(
+      height: 70,
+      color: Constants.backgroundColor,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: categoryData.length,
+        itemBuilder: (context, index) {
+          final isSelected = index == _currentIndex;
+          final data = categoryData[index];
+
+          return GestureDetector(
+            onTap: () => _onCategorySelected(index),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              decoration: BoxDecoration(
+                gradient: isSelected
+                    ? LinearGradient(
+                  colors: [
+                    Constants.accentColor,
+                    Constants.accentColor.withOpacity(0.7),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+                    : const LinearGradient(
+                  colors: [Colors.white, Colors.white],
+                ),
+                borderRadius: BorderRadius.circular(25),
+                border: Border.all(color: Constants.accentColor),
+                boxShadow: [
+                  if (isSelected)
+                    BoxShadow(
+                      color: Constants.accentColor.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    data['icon'],
+                    color: isSelected ? Colors.white : Constants.accentColor,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    data['name'],
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Constants.accentColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildNavItem(IconData icon, int index) {
+  /// 🧭 Updated bottom navigation bar (added Junior Mode)
+  Widget _buildBottomNavBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Constants.accentColor,
+        boxShadow: [
+          BoxShadow(color: Colors.black26, blurRadius: 10),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildNavItem(Icons.home, 0),
+          _buildNavItem(Icons.search, 1),
+          _buildNavItem(Icons.child_care, 4), // 🧒 Junior Mode
+          _buildNavItem(Icons.smart_toy_outlined, 2),
+          _buildNavItem(Icons.person, 3),
+        ],
+      ),
+    );
+  }
+
+  /// 📱 Helper for bottom nav buttons
+  Widget _buildNavItem(IconData icon, int index, {String? label}) {
     final isSelected = _bottomNavIndex == index;
 
     return GestureDetector(
       onTap: () {
         setState(() => _bottomNavIndex = index);
+
         if (index == 0) {
           Provider.of<NewsController>(context, listen: false)
               .fetchNews(category: categories[_currentIndex]);
+        } else if (index == 4) {
+          // Junior Mode logic
+          Provider.of<NewsController>(context, listen: false)
+              .fetchNews(category: "junior");
         }
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: isSelected ? Colors.white : Colors.white.withOpacity(0.3),
@@ -162,17 +222,31 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
               color: Constants.accentColor.withOpacity(0.3),
               blurRadius: 8,
               offset: const Offset(0, 3),
-            )
+            ),
           ]
               : [],
         ),
         child: AnimatedScale(
           scale: isSelected ? 1.2 : 1.0,
           duration: const Duration(milliseconds: 250),
-          child: Icon(
-            icon,
-            color: isSelected ? Constants.accentColor : Colors.grey[800],
-            size: 28,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? Constants.accentColor : Colors.grey[800],
+                size: 26,
+              ),
+              if (label != null)
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: isSelected ? Constants.accentColor : Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+            ],
           ),
         ),
       ),
