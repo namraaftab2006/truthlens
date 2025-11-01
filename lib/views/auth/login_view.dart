@@ -18,7 +18,7 @@ class _LoginViewState extends State<LoginView> {
   final _authController = AuthController();
   bool _loading = false;
 
-  static const Color paleBeige = Color(0xFFF5F5DC);
+  static const Color paleBeige = Color(0xFFEFE9C7);
   static const Color buttonTeal = Color(0xFF1E5255);
 
   @override

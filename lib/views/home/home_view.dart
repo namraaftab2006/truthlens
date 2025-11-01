@@ -15,7 +15,7 @@ class HomeView extends StatefulWidget {
   State<HomeView> createState() => _HomeViewState();
 }
 
-class _HomeViewState extends State<HomeView> {
+class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
   final List<String> categories = ['forYou', 'sports', 'entertainment', 'politics', 'junior'];
   final List<String> categoryNames = ['For You', 'Sports', 'Entertainment', 'Politics', 'Junior Mode'];
@@ -36,7 +36,7 @@ class _HomeViewState extends State<HomeView> {
   int _bottomNavIndex = 0;
 
   final List<Widget> _bottomNavPages = [
-    const Placeholder(), // home (we’ll replace this dynamically)
+    const Placeholder(), // home content
     const SearchView(),
     const AiChatView(),
     const ProfileView(),
@@ -50,11 +50,12 @@ class _HomeViewState extends State<HomeView> {
       backgroundColor: Constants.backgroundColor,
       appBar: AppBar(
         backgroundColor: Constants.accentColor,
-        title: Text(
+        title: const Text(
           "truthlens+",
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: false,
+        elevation: 5,
       ),
       body: _bottomNavIndex == 0
           ? Column(
@@ -112,25 +113,68 @@ class _HomeViewState extends State<HomeView> {
       )
           : _bottomNavPages[_bottomNavIndex],
 
-      // Bottom Navigation Bar
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _bottomNavIndex,
-        backgroundColor: Constants.accentColor,
-        selectedItemColor: Colors.blueGrey,
-        unselectedItemColor: Colors.brown,
-        onTap: (index) {
-          setState(() => _bottomNavIndex = index);
-          if (index == 0) {
-            Provider.of<NewsController>(context, listen: false)
-                .fetchNews(category: categories[_currentIndex]);
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
-          BottomNavigationBarItem(icon: Icon(Icons.smart_toy_outlined), label: 'AI Chat'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
+      // Custom Bottom Navigation Bar
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Constants.accentColor,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 10,
+            )
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(Icons.home, 0),
+            _buildNavItem(Icons.search, 1),
+            _buildNavItem(Icons.smart_toy_outlined, 2),
+            _buildNavItem(Icons.person, 3),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, int index) {
+    final isSelected = _bottomNavIndex == index;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() => _bottomNavIndex = index);
+        if (index == 0) {
+          Provider.of<NewsController>(context, listen: false)
+              .fetchNews(category: categories[_currentIndex]);
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isSelected ? Colors.white : Colors.white.withOpacity(0.3),
+          boxShadow: isSelected
+              ? [
+            BoxShadow(
+              color: Constants.accentColor.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            )
+          ]
+              : [],
+        ),
+        child: AnimatedScale(
+          scale: isSelected ? 1.2 : 1.0,
+          duration: const Duration(milliseconds: 250),
+          child: Icon(
+            icon,
+            color: isSelected ? Constants.accentColor : Colors.grey[800],
+            size: 28,
+          ),
+        ),
       ),
     );
   }
