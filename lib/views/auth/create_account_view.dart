@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../controllers/auth_controller.dart';
 import '../../widgets/custom_textfield.dart';
 import '../home/home_view.dart';
+import 'dart:math';
 
 class CreateAccountView extends StatefulWidget {
   const CreateAccountView({super.key});
@@ -17,6 +18,7 @@ class _CreateAccountViewState extends State<CreateAccountView> {
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
+  final _captchaCtrl = TextEditingController();
   final _authController = AuthController();
 
   bool _loading = false;
@@ -24,11 +26,29 @@ class _CreateAccountViewState extends State<CreateAccountView> {
   static const Color paleBeige = Color(0xFFEFE9C7);
   static const Color buttonTeal = Color(0xFF1E5255);
 
+  int _num1 = 0;
+  int _num2 = 0;
+  int _expectedAnswer = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _generateCaptcha();
+  }
+
+  void _generateCaptcha() {
+    final random = Random();
+    _num1 = random.nextInt(9) + 1;
+    _num2 = random.nextInt(9) + 1;
+    _expectedAnswer = _num1 + _num2;
+  }
+
   @override
   void dispose() {
     _nameCtrl.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
+    _captchaCtrl.dispose();
     super.dispose();
   }
 
@@ -45,7 +65,6 @@ class _CreateAccountViewState extends State<CreateAccountView> {
 
       if (!mounted) return;
 
-      // ✅ Give success feedback
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Welcome, ${user.displayName ?? 'User'}!'),
@@ -53,7 +72,6 @@ class _CreateAccountViewState extends State<CreateAccountView> {
         ),
       );
 
-      // ✅ Navigate safely to HomeView after build completes
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           Navigator.of(context).pushAndRemoveUntil(
@@ -88,6 +106,24 @@ class _CreateAccountViewState extends State<CreateAccountView> {
   String? _validatePassword(String? v) {
     if (v == null || v.isEmpty) return 'Enter password';
     if (v.length < 6) return 'Password must be at least 6 characters';
+    if (!RegExp(r'(?=.*[A-Z])').hasMatch(v)) {
+      return 'Password must contain an uppercase letter';
+    }
+    if (!RegExp(r'(?=.*[a-z])').hasMatch(v)) {
+      return 'Password must contain a lowercase letter';
+    }
+    if (!RegExp(r'(?=.*[0-9])').hasMatch(v)) {
+      return 'Password must contain a number';
+    }
+    if (!RegExp(r'(?=.*[!@#\$&*~])').hasMatch(v)) {
+      return 'Password must contain a special character (!@#\$&*~)';
+    }
+    return null;
+  }
+
+  String? _validateCaptcha(String? v) {
+    if (v == null || v.isEmpty) return 'Enter captcha answer';
+    if (int.tryParse(v) != _expectedAnswer) return 'Captcha incorrect';
     return null;
   }
 
@@ -145,6 +181,16 @@ class _CreateAccountViewState extends State<CreateAccountView> {
                   hintText: 'Password',
                   validator: _validatePassword,
                   isPassword: true,
+                ),
+                const SizedBox(height: 14),
+                Text('Solve the CAPTCHA: $_num1 + $_num2 = ?',
+                    style: const TextStyle(fontSize: 16)),
+                const SizedBox(height: 8),
+                CustomTextField(
+                  controller: _captchaCtrl,
+                  hintText: 'Enter answer',
+                  validator: _validateCaptcha,
+                  textInputType: TextInputType.number,
                 ),
                 const SizedBox(height: 22),
                 SizedBox(
