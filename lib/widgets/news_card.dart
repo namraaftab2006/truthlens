@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -23,6 +24,7 @@ class _NewsCardState extends State<NewsCard> {
 
   bool isLiked = false;
   bool isSaved = false;
+  bool isSpeaking = false;
   int likeCount = 0;
   List<Map<String, dynamic>> comments = [];
 
@@ -33,161 +35,243 @@ class _NewsCardState extends State<NewsCard> {
     _setupTts();
   }
 
-  void _setupTts() async {
-    await flutterTts.setLanguage("en-IN");
-    await flutterTts.setPitch(1.0);
-    await flutterTts.setSpeechRate(0.9);
-  }
-
   @override
   void dispose() {
     flutterTts.stop();
     super.dispose();
   }
 
-  Future<void> _loadArticleStatus() async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-    final docRef = _firestore.collection('articles').doc(widget.article.link);
-    final docSnap = await docRef.get();
-
-    if (docSnap.exists) {
-      final data = docSnap.data()!;
-      setState(() {
-        likeCount = data['likes'] ?? 0;
-        comments = List<Map<String, dynamic>>.from(data['comments'] ?? []);
-      });
+  String _docIdFromLink(String? link) {
+    if (link == null || link.isEmpty) {
+      final fallback = widget.article.title;
+      final bytes = utf8.encode(fallback);
+      return base64Url.encode(bytes);
     }
+    final bytes = utf8.encode(link);
+    return base64Url.encode(bytes);
+  }
 
-    final userDoc = await _firestore.collection('users').doc(user.uid).get();
-    final savedList = List<String>.from(userDoc.data()?['savedArticles'] ?? []);
-    setState(() => isSaved = savedList.contains(widget.article.link ?? ''));
+  Future<void> _setupTts() async {
+    await flutterTts.setLanguage("en-IN");
+    await flutterTts.setPitch(1.0);
+    await flutterTts.setSpeechRate(0.9);
+    await flutterTts.awaitSpeakCompletion(true);
+
+    flutterTts.setStartHandler(() => setState(() => isSpeaking = true));
+    flutterTts.setCompletionHandler(() => setState(() => isSpeaking = false));
+    flutterTts.setErrorHandler((msg) {
+      setState(() => isSpeaking = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('TTS error: $msg')),
+      );
+    });
+  }
+
+  Future<void> _loadArticleStatus() async {
+    try {
+      final user = _auth.currentUser;
+      final docId = _docIdFromLink(widget.article.link);
+      final docRef = _firestore.collection('articles').doc(docId);
+      final docSnap = await docRef.get();
+
+      if (docSnap.exists) {
+        final data = docSnap.data()!;
+        setState(() {
+          likeCount = (data['likes'] ?? 0) is int ? data['likes'] : int.tryParse('${data['likes']}') ?? 0;
+          comments = List<Map<String, dynamic>>.from(data['comments'] ?? []);
+        });
+      } else {
+        await docRef.set({
+          'title': widget.article.title,
+          'link': widget.article.link,
+          'likes': 0,
+        }, SetOptions(merge: true));
+      }
+
+      if (user != null) {
+        final likedSnap = await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .collection('likedArticles')
+            .doc(docId)
+            .get();
+        setState(() => isLiked = likedSnap.exists);
+
+        final savedSnap = await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .collection('savedArticles')
+            .doc(docId)
+            .get();
+        setState(() => isSaved = savedSnap.exists);
+      }
+    } catch (e) {
+      debugPrint('Error loading article status: $e');
+    }
   }
 
   Future<void> _toggleLike() async {
     final user = _auth.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login to like articles')),
+      );
+      return;
+    }
 
-    final articleRef = _firestore.collection('articles').doc(widget.article.link);
+    final docId = _docIdFromLink(widget.article.link);
+    final articleRef = _firestore.collection('articles').doc(docId);
+    final userLikeRef =
+    _firestore.collection('users').doc(user.uid).collection('likedArticles').doc(docId);
+
     setState(() {
       isLiked = !isLiked;
       likeCount += isLiked ? 1 : -1;
+      if (likeCount < 0) likeCount = 0;
     });
 
-    await articleRef.set({
-      'title': widget.article.title,
-      'link': widget.article.link,
-      'likes': likeCount,
-    }, SetOptions(merge: true));
+    try {
+      await _firestore.runTransaction((tx) async {
+        final snapshot = await tx.get(articleRef);
+        int currentLikes = snapshot.exists ? (snapshot.data()!['likes'] ?? 0) : 0;
+        tx.set(articleRef, {
+          'title': widget.article.title,
+          'link': widget.article.link,
+          'likes': isLiked ? currentLikes + 1 : (currentLikes - 1).clamp(0, 999999),
+        }, SetOptions(merge: true));
+
+        if (isLiked) {
+          tx.set(userLikeRef, {'liked': true, 'timestamp': FieldValue.serverTimestamp()});
+        } else {
+          tx.delete(userLikeRef);
+        }
+      });
+    } catch (e) {
+      debugPrint('Error toggling like: $e');
+    }
   }
 
   Future<void> _toggleSave() async {
     final user = _auth.currentUser;
-    if (user == null) return;
-
-    final docRef = _firestore.collection('users').doc(user.uid);
-    final doc = await docRef.get();
-    final savedList = List<String>.from(doc.data()?['savedArticles'] ?? []);
-    final articleUrl = widget.article.link ?? '';
-
-    if (savedList.contains(articleUrl)) {
-      savedList.remove(articleUrl);
-      setState(() => isSaved = false);
+    if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Removed from Saved')),
+        const SnackBar(content: Text('Please login to save articles')),
       );
-    } else {
-      savedList.add(articleUrl);
-      setState(() => isSaved = true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Saved Successfully')),
-      );
+      return;
     }
 
-    await docRef.update({'savedArticles': savedList});
+    final docId = _docIdFromLink(widget.article.link);
+    final userSavedRef =
+    _firestore.collection('users').doc(user.uid).collection('savedArticles').doc(docId);
+
+    try {
+      if (isSaved) {
+        await userSavedRef.delete();
+        setState(() => isSaved = false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Removed from Saved')));
+      } else {
+        await userSavedRef.set({
+          'title': widget.article.title,
+          'description': widget.article.description,
+          'imageUrl': widget.article.imageUrl,
+          'link': widget.article.link,
+          'source': widget.article.source,
+          'pubDate': widget.article.pubDate,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+        setState(() => isSaved = true);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Saved Successfully')));
+      }
+    } catch (e) {
+      debugPrint('Error toggling save: $e');
+    }
   }
 
   void _showCommentsSheet() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) {
-        final TextEditingController commentController = TextEditingController();
-
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-                top: 16,
-                left: 16,
-                right: 16,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('Comments', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: 200,
-                    child: comments.isEmpty
-                        ? const Center(child: Text('No comments yet'))
-                        : ListView.builder(
-                      itemCount: comments.length,
-                      itemBuilder: (_, i) => ListTile(
-                        leading: const Icon(Icons.person, color: Colors.grey),
-                        title: Text(comments[i]['text']),
-                      ),
-                    ),
+        final commentController = TextEditingController();
+        return StatefulBuilder(builder: (context, setModalState) {
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+              left: 16,
+              right: 16,
+              top: 16,
+            ),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Text('Comments',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 200,
+                child: comments.isEmpty
+                    ? const Center(child: Text('No comments yet'))
+                    : ListView.builder(
+                  itemCount: comments.length,
+                  itemBuilder: (_, i) => ListTile(
+                    leading: const Icon(Icons.person, color: Colors.grey),
+                    title: Text(comments[i]['text']),
                   ),
-                  const Divider(),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: commentController,
-                          decoration: const InputDecoration(
-                            hintText: 'Write a comment...',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.send, color: Constants.accentColor),
-                        onPressed: () async {
-                          if (commentController.text.trim().isNotEmpty) {
-                            final newComment = {
-                              'user': _auth.currentUser?.email ?? 'Anonymous',
-                              'text': commentController.text.trim(),
-                              'timestamp': FieldValue.serverTimestamp(),
-                            };
-                            setModalState(() => comments.add(newComment));
-
-                            await _firestore
-                                .collection('articles')
-                                .doc(widget.article.link)
-                                .set({
-                              'comments': comments,
-                              'title': widget.article.title,
-                              'link': widget.article.link,
-                            }, SetOptions(merge: true));
-                            commentController.clear();
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
-            );
-          },
-        );
+              Row(children: [
+                Expanded(
+                  child: TextField(
+                    controller: commentController,
+                    decoration: const InputDecoration(
+                        hintText: 'Write a comment...',
+                        border: OutlineInputBorder()),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.send, color: Constants.accentColor),
+                  onPressed: () async {
+                    if (commentController.text.trim().isNotEmpty) {
+                      final newComment = {
+                        'user': _auth.currentUser?.email ?? 'Anonymous',
+                        'text': commentController.text.trim(),
+                        'timestamp': FieldValue.serverTimestamp(),
+                      };
+                      setModalState(() => comments.add(newComment));
+
+                      final docId = _docIdFromLink(widget.article.link);
+                      await _firestore.collection('articles').doc(docId).set({
+                        'comments': comments,
+                        'title': widget.article.title,
+                        'link': widget.article.link,
+                      }, SetOptions(merge: true));
+                      commentController.clear();
+                    }
+                  },
+                ),
+              ]),
+            ]),
+          );
+        });
       },
     );
+  }
+
+  Future<void> _toggleSpeech() async {
+    try {
+      if (isSpeaking) {
+        await flutterTts.stop();
+        setState(() => isSpeaking = false);
+      } else {
+        final text = '${widget.article.title}. ${widget.article.description}';
+        setState(() => isSpeaking = true);
+        await flutterTts.speak(text);
+      }
+    } catch (e) {
+      debugPrint('TTS toggle error: $e');
+    }
   }
 
   @override
@@ -201,13 +285,15 @@ class _NewsCardState extends State<NewsCard> {
       Colors.teal[50],
     ];
     final bgColor = widget.isJunior
-        ? (pastelColors[(widget.article.title.hashCode) % pastelColors.length] ?? Colors.yellow[50])
+        ? (pastelColors[(widget.article.title.hashCode) % pastelColors.length] ??
+        Colors.yellow[50])
         : Constants.backgroundColor;
 
     return InkWell(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => NewsDetailView(article: widget.article)),
+        MaterialPageRoute(
+            builder: (_) => NewsDetailView(article: widget.article)),
       ),
       child: Card(
         color: bgColor,
@@ -217,9 +303,11 @@ class _NewsCardState extends State<NewsCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (widget.article.imageUrl != null && widget.article.imageUrl!.isNotEmpty)
+            if (widget.article.imageUrl != null &&
+                widget.article.imageUrl!.isNotEmpty)
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+                borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(15)),
                 child: Image.network(
                   widget.article.imageUrl!,
                   height: 180,
@@ -232,27 +320,23 @@ class _NewsCardState extends State<NewsCard> {
                 height: 180,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                ),
-                child: const Icon(Icons.image_not_supported, size: 60, color: Colors.grey),
+                    color: Colors.grey[300],
+                    borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(15))),
+                child: const Icon(Icons.image_not_supported,
+                    size: 60, color: Colors.grey),
               ),
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    widget.article.title.isNotEmpty
-                        ? widget.article.title
-                        : 'No Title',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
+                  Text(widget.article.title,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 8),
                   Text(
-                    widget.article.description.isNotEmpty
-                        ? widget.article.description
-                        : 'No description available.',
+                    widget.article.description,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(color: Colors.black87),
@@ -261,54 +345,47 @@ class _NewsCardState extends State<NewsCard> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      Row(
-                        children: [
-                          IconButton(
+                      Row(children: [
+                        IconButton(
                             icon: Icon(
-                              isLiked ? Icons.favorite : Icons.favorite_border,
-                              color: isLiked ? Colors.red : Constants.likeColor,
+                              isLiked
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              color:
+                              isLiked ? Colors.red : Constants.likeColor,
                             ),
-                            onPressed: _toggleLike,
+                            onPressed: _toggleLike),
+                        Text('$likeCount'),
+                      ]),
+                      IconButton(
+                          icon: Icon(
+                            isSaved
+                                ? Icons.bookmark
+                                : Icons.bookmark_border,
+                            color: isSaved
+                                ? Constants.accentColor
+                                : Colors.grey,
                           ),
-                          Text(likeCount.toString()),
-                        ],
-                      ),
+                          onPressed: _toggleSave),
                       IconButton(
-                        icon: Icon(
-                          isSaved ? Icons.bookmark : Icons.bookmark_border,
-                          color: isSaved ? Constants.accentColor : Colors.grey,
-                        ),
-                        onPressed: _toggleSave,
-                      ),
+                          icon: const Icon(Icons.comment, color: Colors.grey),
+                          onPressed: _showCommentsSheet),
                       IconButton(
-                        icon: const Icon(Icons.comment, color: Colors.grey),
-                        onPressed: _showCommentsSheet,
-                      ),
+                          icon: const Icon(Icons.share,
+                              color: Constants.accentColor),
+                          onPressed: () {
+                            if (widget.article.link != null) {
+                              Share.share(widget.article.link!);
+                            }
+                          }),
                       IconButton(
-                        icon: const Icon(Icons.share, color: Constants.accentColor),
-                        onPressed: () {
-                          if (widget.article.link != null && widget.article.link!.isNotEmpty) {
-                            Share.share(widget.article.link!);
-                          }
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.volume_up, color: Constants.accentColor),
-                        onPressed: () async {
-                          try {
-                            await flutterTts.stop();
-                            await flutterTts.awaitSpeakCompletion(true);
-                            await flutterTts.speak(
-                              '${widget.article.title}. ${widget.article.description}',
-                            );
-                          } catch (e) {
-                            debugPrint('TTS Error: $e');
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Unable to start voice: $e')),
-                            );
-                          }
-                        },
-                      ),
+                          icon: Icon(
+                            isSpeaking
+                                ? Icons.stop_circle_outlined
+                                : Icons.volume_up,
+                            color: Constants.accentColor,
+                          ),
+                          onPressed: _toggleSpeech),
                     ],
                   ),
                 ],

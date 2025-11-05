@@ -6,6 +6,7 @@ import 'package:country_picker/country_picker.dart';
 import '../../utils/constants.dart';
 import '../auth/signup_view.dart';
 import '../../widgets/custom_textfield.dart';
+import '../home/saved_news_view.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -39,6 +40,7 @@ class _ProfileViewState extends State<ProfileView> {
     _loadUserData();
   }
 
+  // 🔹 Load user data from Firestore
   Future<void> _loadUserData() async {
     final user = _auth.currentUser;
     if (user != null) {
@@ -61,6 +63,7 @@ class _ProfileViewState extends State<ProfileView> {
     }
   }
 
+  // 🔹 Update user profile
   Future<void> _updateUserProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -80,7 +83,14 @@ class _ProfileViewState extends State<ProfileView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile updated successfully!')),
       );
+
       await _loadUserData();
+
+      // 🟢 Navigate to Saved News
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const SavedNewsView()),
+      );
     } catch (e) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -89,6 +99,7 @@ class _ProfileViewState extends State<ProfileView> {
     }
   }
 
+  // 🔹 Pick Date of Birth
   void _pickDOB() async {
     final picked = await showDatePicker(
       context: context,
@@ -103,6 +114,7 @@ class _ProfileViewState extends State<ProfileView> {
     }
   }
 
+  // 🔹 Pick Country
   void _pickCountry() {
     showCountryPicker(
       context: context,
@@ -116,6 +128,7 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
+  // 🔹 Logout user
   void _logout() async {
     await _auth.signOut();
     if (!mounted) return;
@@ -126,45 +139,54 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  Widget _buildStatsBox(String label, int count) {
+  // 🔹 Reusable Stats Box Widget
+  Widget _buildStatsBox(String label, int count, {VoidCallback? onTap}) {
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Text(count.toString(),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Text(
+                count.toString(),
                 style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 4),
-            Text(label,
-                style:
-                const TextStyle(fontSize: 12, color: Colors.grey)),
-          ],
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
+  // 🔹 UI
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Constants.backgroundColor,
       appBar: AppBar(
         backgroundColor: Constants.accentColor,
-        title:
-        const Text('Profile', style: TextStyle(color: Colors.white)),
+        title: const Text('Profile', style: TextStyle(color: Colors.white)),
         centerTitle: true,
         actions: [
           IconButton(
@@ -186,24 +208,39 @@ class _ProfileViewState extends State<ProfileView> {
                 const CircleAvatar(
                   radius: 45,
                   backgroundColor: Constants.accentColor,
-                  child: Icon(Icons.person,
-                      color: Colors.white, size: 50),
+                  child:
+                  Icon(Icons.person, color: Colors.white, size: 50),
                 ),
                 const SizedBox(height: 15),
+
+                // 🔹 User Stats Row
                 Row(
                   children: [
                     _buildStatsBox('Followings', _followings),
-                    _buildStatsBox('Saved', _saved),
+                    _buildStatsBox(
+                      'Saved',
+                      _saved,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SavedNewsView(),
+                          ),
+                        );
+                      },
+                    ),
                     _buildStatsBox('Bookmarks', _bookmarks),
                     _buildStatsBox('Chats', _chats),
                   ],
                 ),
+
                 const SizedBox(height: 25),
+
+                // 🔹 Profile Fields
                 CustomTextField(
                   controller: _nameController,
                   hintText: 'Name',
-                  validator: (v) =>
-                  v!.isEmpty ? 'Enter name' : null,
+                  validator: (v) => v!.isEmpty ? 'Enter name' : null,
                 ),
                 const SizedBox(height: 15),
                 CustomTextField(
@@ -231,7 +268,9 @@ class _ProfileViewState extends State<ProfileView> {
                   isReadOnly: true,
                   onTap: _pickCountry,
                 ),
+
                 const SizedBox(height: 25),
+
                 ElevatedButton(
                   onPressed: _updateUserProfile,
                   style: ElevatedButton.styleFrom(
@@ -239,8 +278,10 @@ class _ProfileViewState extends State<ProfileView> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 40, vertical: 12),
                   ),
-                  child: const Text('Save Changes',
-                      style: TextStyle(color: Colors.white)),
+                  child: const Text(
+                    'Save Changes',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             ),

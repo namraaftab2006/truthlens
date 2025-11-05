@@ -8,6 +8,39 @@ import 'search_view.dart';
 import 'ai_chat_view.dart';
 import 'profile_view.dart';
 
+/// 🧒 Simple Junior Mode View placeholder
+class JuniorModeView extends StatelessWidget {
+  const JuniorModeView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = Provider.of<NewsController>(context);
+
+    return Scaffold(
+      backgroundColor: Constants.backgroundColor,
+      appBar: AppBar(
+        backgroundColor: Constants.accentColor,
+        title: const Text('Junior Mode', style: TextStyle(color: Colors.white)),
+        centerTitle: true,
+      ),
+      body: controller.isLoading
+          ? const ShimmerLoader()
+          : RefreshIndicator(
+        onRefresh: () async {
+          await controller.fetchNews(category: 'junior');
+        },
+        child: ListView.builder(
+          itemCount: controller.newsList.length,
+          itemBuilder: (context, index) {
+            final article = controller.newsList[index];
+            return NewsCard(article: article, isJunior: true);
+          },
+        ),
+      ),
+    );
+  }
+}
+
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
 
@@ -33,11 +66,13 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
     {'name': 'Politics', 'icon': Icons.account_balance},
   ];
 
+  // ✅ 5 pages for 5 nav items
   final List<Widget> _bottomNavPages = const [
     Placeholder(),
     SearchView(),
     AiChatView(),
     ProfileView(),
+    JuniorModeView(),
   ];
 
   @override
@@ -82,7 +117,6 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
                 await controller.fetchNews(
                     category: categories[_currentIndex]);
               },
-              // 🔹 UPDATED PART BELOW 🔹
               child: ListView.builder(
                 itemCount: controller.newsList.length,
                 itemBuilder: (context, index) {
@@ -93,7 +127,6 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
                       article: article, isJunior: isJuniorMode);
                 },
               ),
-              // 🔹 UPDATED PART ENDS 🔹
             ),
           ),
         ],
@@ -131,9 +164,7 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 )
-                    : const LinearGradient(
-                  colors: [Colors.white, Colors.white],
-                ),
+                    : const LinearGradient(colors: [Colors.white, Colors.white]),
                 borderRadius: BorderRadius.circular(25),
                 border: Border.all(color: Constants.accentColor),
                 boxShadow: [
@@ -170,14 +201,12 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
     );
   }
 
-  /// 🧭 Updated bottom navigation bar (added Junior Mode)
+  /// 🧭 Bottom navigation bar (with Junior Mode)
   Widget _buildBottomNavBar() {
     return Container(
       decoration: BoxDecoration(
         color: Constants.accentColor,
-        boxShadow: [
-          BoxShadow(color: Colors.black26, blurRadius: 10),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
       ),
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -205,7 +234,6 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
           Provider.of<NewsController>(context, listen: false)
               .fetchNews(category: categories[_currentIndex]);
         } else if (index == 4) {
-          // Junior Mode logic
           Provider.of<NewsController>(context, listen: false)
               .fetchNews(category: "junior");
         }
@@ -229,24 +257,10 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
         child: AnimatedScale(
           scale: isSelected ? 1.2 : 1.0,
           duration: const Duration(milliseconds: 250),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                color: isSelected ? Constants.accentColor : Colors.grey[800],
-                size: 26,
-              ),
-              if (label != null)
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: isSelected ? Constants.accentColor : Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-            ],
+          child: Icon(
+            icon,
+            color: isSelected ? Constants.accentColor : Colors.grey[800],
+            size: 26,
           ),
         ),
       ),
