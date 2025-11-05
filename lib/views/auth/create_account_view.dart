@@ -183,16 +183,6 @@ class _CreateAccountViewState extends State<CreateAccountView> {
                   isPassword: true,
                 ),
                 const SizedBox(height: 14),
-                Text('Solve the CAPTCHA: $_num1 + $_num2 = ?',
-                    style: const TextStyle(fontSize: 16)),
-                const SizedBox(height: 8),
-                CustomTextField(
-                  controller: _captchaCtrl,
-                  hintText: 'Enter answer',
-                  validator: _validateCaptcha,
-                  textInputType: TextInputType.number,
-                ),
-                const SizedBox(height: 22),
                 SizedBox(
                   width: double.infinity,
                   height: 52,
