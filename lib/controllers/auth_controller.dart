@@ -9,6 +9,11 @@ class AuthController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  /// ✅ Constructor — sets default Firebase language
+  AuthController() {
+    _auth.setLanguageCode('en'); // prevents locale null warning
+  }
+
   /// SIGN IN METHOD
   /// Returns User on success, throws a String message on failure
   Future<User> signIn(String email, String password) async {

@@ -20,19 +20,46 @@ class NewsArticle {
   });
 
   factory NewsArticle.fromJson(Map<String, dynamic> json) {
+    // Handle cases where 'source' may be a Map or a String
+    String? sourceName;
+    if (json['source'] is Map) {
+      sourceName = json['source']?['name']?.toString();
+    } else if (json['source'] is String) {
+      sourceName = json['source'];
+    }
+
+    // Handle category that can be List or String
+    String categoryValue = '';
+    if (json['category'] is List && (json['category'] as List).isNotEmpty) {
+      categoryValue = json['category'][0].toString();
+    } else if (json['category'] is String) {
+      categoryValue = json['category'];
+    }
+
     return NewsArticle(
-      title: json['title'] ?? '',
-      description: json['description'] ?? '',
-      imageUrl: json['image_url'] ?? json['urlToImage'],
-      link: json['link'] ?? json['url'],
-      category: (json['category'] != null && json['category'] is List)
-          ? (json['category'] as List).isNotEmpty
-          ? json['category'][0]
-          : ''
-          : (json['category'] ?? ''),
-      source: json['source'] ?? '',
-      pubDate: json['pubDate'] ?? json['publishedAt'],
-      content: json['content'] ?? '',
+      title: json['title']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      imageUrl: json['image_url']?.toString() ??
+          json['urlToImage']?.toString() ??
+          '',
+      link: json['link']?.toString() ?? json['url']?.toString(),
+      category: categoryValue,
+      source: sourceName ?? '',
+      pubDate: json['pubDate']?.toString() ?? json['publishedAt']?.toString(),
+      content: json['content']?.toString() ?? '',
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'title': title,
+      'description': description,
+      'image_url': imageUrl,
+      'link': link,
+      'category': category,
+      'source': source,
+      'pubDate': pubDate,
+      'content': content,
+    };
   }
 }

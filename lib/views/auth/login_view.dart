@@ -1,8 +1,8 @@
 // lib/views/auth/login_view.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../controllers/auth_controller.dart';
 import '../../widgets/custom_textfield.dart';
-import '../../routes/app_routes.dart';
 import '../home/home_view.dart';
 
 class LoginView extends StatefulWidget {
@@ -32,21 +32,61 @@ class _LoginViewState extends State<LoginView> {
     final email = _emailCtrl.text.trim();
     final password = _passCtrl.text;
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter email and password')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter email and password')),
+      );
       return;
     }
 
     setState(() => _loading = true);
     try {
-      await _authController.signIn(email, password);
-      if (context.mounted) {
-        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const HomeView()), (r) => false);
-      }
+      final user = await _authController.signIn(email, password);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Welcome back, ${user.email}!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // ✅ Navigate safely after current frame
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const HomeView()),
+                (route) => false,
+          );
+        }
+      });
     } catch (e) {
-      final msg = e is String ? e : 'Login failed';
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_handleFirebaseError(e)),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  String _handleFirebaseError(dynamic e) {
+    if (e is FirebaseAuthException) {
+      switch (e.code) {
+        case 'user-not-found':
+          return 'No user found for that email.';
+        case 'wrong-password':
+          return 'Incorrect password.';
+        case 'invalid-email':
+          return 'Invalid email format.';
+        default:
+          return e.message ?? 'Login failed.';
+      }
+    } else {
+      return e.toString();
     }
   }
 
@@ -69,7 +109,6 @@ class _LoginViewState extends State<LoginView> {
                 controller: _emailCtrl,
                 hintText: 'Email',
                 textInputType: TextInputType.emailAddress,
-                isPassword: false,
               ),
               const SizedBox(height: 14),
               CustomTextField(
@@ -85,9 +124,16 @@ class _LoginViewState extends State<LoginView> {
                   onPressed: _loading ? null : _login,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: buttonTeal,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
-                  child: _loading ? const CircularProgressIndicator(color: Colors.white) : const Text('Log in', style: TextStyle(color: Colors.white, fontSize: 16)),
+                  child: _loading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                    'Log in',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
                 ),
               ),
             ],

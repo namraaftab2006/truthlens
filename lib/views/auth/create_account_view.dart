@@ -1,5 +1,6 @@
 // lib/views/auth/create_account_view.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../controllers/auth_controller.dart';
 import '../../widgets/custom_textfield.dart';
 import '../home/home_view.dart';
@@ -33,26 +34,50 @@ class _CreateAccountViewState extends State<CreateAccountView> {
 
   Future<void> _createAccount() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _loading = true);
-    final name = _nameCtrl.text.trim();
-    final email = _emailCtrl.text.trim();
-    final password = _passCtrl.text;
 
     try {
-      await _authController.createAccount(name, email, password);
-      if (context.mounted) {
-        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const HomeView()), (route) => false);
-      }
+      final user = await _authController.createAccount(
+        _nameCtrl.text.trim(),
+        _emailCtrl.text.trim(),
+        _passCtrl.text,
+      );
+
+      if (!mounted) return;
+
+      // ✅ Give success feedback
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Welcome, ${user.displayName ?? 'User'}!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // ✅ Navigate safely to HomeView after build completes
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const HomeView()),
+                (route) => false,
+          );
+        }
+      });
     } catch (e) {
-      final msg = e is String ? e : 'Account creation failed';
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_handleFirebaseError(e)),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  String? _validateName(String? v) => (v == null || v.trim().isEmpty) ? 'Enter your name' : null;
+  String? _validateName(String? v) =>
+      (v == null || v.trim().isEmpty) ? 'Enter your name' : null;
+
   String? _validateEmail(String? v) {
     if (v == null || v.trim().isEmpty) return 'Enter email';
     final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
@@ -66,6 +91,23 @@ class _CreateAccountViewState extends State<CreateAccountView> {
     return null;
   }
 
+  String _handleFirebaseError(dynamic e) {
+    if (e is FirebaseAuthException) {
+      switch (e.code) {
+        case 'email-already-in-use':
+          return 'This email is already registered.';
+        case 'invalid-email':
+          return 'Invalid email format.';
+        case 'weak-password':
+          return 'Password is too weak.';
+        default:
+          return e.message ?? 'Account creation failed.';
+      }
+    } else {
+      return e.toString();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -74,7 +116,8 @@ class _CreateAccountViewState extends State<CreateAccountView> {
         backgroundColor: paleBeige,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black87),
-        title: const Text('Create account', style: TextStyle(color: Colors.black87)),
+        title: const Text('Create account',
+            style: TextStyle(color: Colors.black87)),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -83,7 +126,6 @@ class _CreateAccountViewState extends State<CreateAccountView> {
             key: _formKey,
             child: Column(
               children: [
-                // Name
                 CustomTextField(
                   controller: _nameCtrl,
                   hintText: 'Full name',
@@ -91,8 +133,6 @@ class _CreateAccountViewState extends State<CreateAccountView> {
                   textInputAction: TextInputAction.next,
                 ),
                 const SizedBox(height: 14),
-
-                // Email
                 CustomTextField(
                   controller: _emailCtrl,
                   hintText: 'Email',
@@ -100,8 +140,6 @@ class _CreateAccountViewState extends State<CreateAccountView> {
                   textInputType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 14),
-
-                // Password
                 CustomTextField(
                   controller: _passCtrl,
                   hintText: 'Password',
@@ -109,7 +147,6 @@ class _CreateAccountViewState extends State<CreateAccountView> {
                   isPassword: true,
                 ),
                 const SizedBox(height: 22),
-
                 SizedBox(
                   width: double.infinity,
                   height: 52,
@@ -117,11 +154,17 @@ class _CreateAccountViewState extends State<CreateAccountView> {
                     onPressed: _loading ? null : _createAccount,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: buttonTeal,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
                     child: _loading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('Create account', style: TextStyle(fontSize: 16, color: Colors.white)),
+                        : const Text(
+                      'Create account',
+                      style:
+                      TextStyle(fontSize: 16, color: Colors.white),
+                    ),
                   ),
                 ),
               ],
