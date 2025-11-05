@@ -51,6 +51,7 @@ class _AiChatViewState extends State<AiChatView>
     }
   }
 
+  /// 🎙️ Initialize Speech Recognition
   Future<void> _initSpeech() async {
     var micStatus = await Permission.microphone.status;
     if (!micStatus.isGranted) {
@@ -65,15 +66,34 @@ class _AiChatViewState extends State<AiChatView>
     }
 
     _speechAvailable = await _speech.initialize(
-      onStatus: (status) => print("Speech status: $status"),
-      onError: (error) => print("Speech error: $error"),
+      onStatus: (status) {
+        debugPrint("Speech status: $status");
+        if (status == 'done' || status == 'notListening') {
+          _hideListeningOverlay();
+          setState(() => _isListening = false);
+          _pulseController.stop();
+        }
+      },
+      onError: (error) {
+        debugPrint("Speech error: $error");
+        _hideListeningOverlay();
+        setState(() => _isListening = false);
+        _pulseController.stop();
+      },
     );
+
+    if (!_speechAvailable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Speech recognition not available.')),
+      );
+    }
   }
 
+  /// 🔊 Initialize Text to Speech
   Future<void> _initTts() async {
-    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setLanguage("en-IN"); // Better for Indian accent
     await _flutterTts.setPitch(1.0);
-    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setSpeechRate(0.45);
     _flutterTts.setCompletionHandler(() {
       setState(() => _isSpeaking = false);
     });
@@ -123,6 +143,7 @@ class _AiChatViewState extends State<AiChatView>
     _simulateBotResponse(text);
   }
 
+  /// 🎤 Start / Stop Listening
   Future<void> _listen() async {
     var micStatus = await Permission.microphone.status;
     if (!micStatus.isGranted) {
@@ -136,28 +157,8 @@ class _AiChatViewState extends State<AiChatView>
     }
 
     if (!_speechAvailable) {
-      _speechAvailable = await _speech.initialize(
-        onStatus: (status) {
-          print('Speech status: $status');
-          if (status == 'done' || status == 'notListening') {
-            _hideListeningOverlay();
-            setState(() => _isListening = false);
-            _pulseController.stop();
-          }
-        },
-        onError: (error) {
-          print('Speech error: $error');
-          _hideListeningOverlay();
-          setState(() => _isListening = false);
-          _pulseController.stop();
-        },
-      );
-      if (!_speechAvailable) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Speech recognition not available.')),
-        );
-        return;
-      }
+      await _initSpeech();
+      if (!_speechAvailable) return;
     }
 
     if (!_isListening) {
@@ -167,11 +168,14 @@ class _AiChatViewState extends State<AiChatView>
 
       await _speech.listen(
         listenFor: const Duration(seconds: 30),
-        pauseFor: const Duration(seconds: 3),
+        pauseFor: const Duration(seconds: 5),
+        localeId: "en-IN", // Fix for Hinglish/Indian English
         onResult: (result) {
-          setState(() {
-            _messageController.text = result.recognizedWords;
-          });
+          if (result.recognizedWords.isNotEmpty) {
+            setState(() {
+              _messageController.text = result.recognizedWords;
+            });
+          }
         },
       );
     } else {
@@ -182,6 +186,7 @@ class _AiChatViewState extends State<AiChatView>
     }
   }
 
+  /// 🎧 Overlay when listening
   void _showListeningOverlay() {
     _hideListeningOverlay();
     final overlay = OverlayEntry(
@@ -220,7 +225,9 @@ class _AiChatViewState extends State<AiChatView>
     _listeningOverlay = null;
   }
 
+  /// 🔊 Speak a message
   Future<void> _speak(String text) async {
+    await _flutterTts.stop(); // Prevent overlapping voices
     await _flutterTts.speak(text);
     setState(() => _isSpeaking = true);
   }
