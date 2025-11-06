@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../controllers/news_controller.dart';
+import '../../controllers/theme_controller.dart';
 import '../../utils/constants.dart';
 import '../../widgets/news_card.dart';
 import 'shimmer_loader.dart';
@@ -8,7 +9,7 @@ import 'search_view.dart';
 import 'ai_chat_view.dart';
 import 'profile_view.dart';
 
-/// 🧒 Simple Junior Mode View placeholder
+/// 🧒 Junior Mode View
 class JuniorModeView extends StatelessWidget {
   const JuniorModeView({super.key});
 
@@ -17,12 +18,8 @@ class JuniorModeView extends StatelessWidget {
     final controller = Provider.of<NewsController>(context);
 
     return Scaffold(
-      backgroundColor: Constants.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Constants.accentColor,
-        title: const Text('Junior Mode', style: TextStyle(color: Colors.white)),
-        centerTitle: true,
-      ),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      // ❌ AppBar removed to avoid duplicates
       body: controller.isLoading
           ? const ShimmerLoader()
           : RefreshIndicator(
@@ -41,6 +38,7 @@ class JuniorModeView extends StatelessWidget {
   }
 }
 
+/// 🏠 Home View with bottom navigation
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
 
@@ -66,13 +64,12 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
     {'name': 'Politics', 'icon': Icons.account_balance},
   ];
 
-  // ✅ 5 pages for 5 nav items
   final List<Widget> _bottomNavPages = const [
-    Placeholder(),
-    SearchView(),
-    AiChatView(),
-    ProfileView(),
-    JuniorModeView(),
+    Placeholder(),       // Home feed
+    SearchView(),        // Search
+    AiChatView(),        // AI Chat
+    ProfileView(),       // Profile
+    JuniorModeView(),    // Junior Mode
   ];
 
   @override
@@ -93,17 +90,29 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     final controller = Provider.of<NewsController>(context);
+    final themeController = Provider.of<ThemeController>(context);
 
     return Scaffold(
-      backgroundColor: Constants.backgroundColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+
+      /// Main AppBar for all tabs
       appBar: AppBar(
         backgroundColor: Constants.accentColor,
-        title: const Text(
-          "truthlens+",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Text(
+          _bottomNavIndex == 0 ? "truthlens+" : _getPageTitle(_bottomNavIndex),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
+        centerTitle: true,
         elevation: 5,
+        actions: [
+          IconButton(
+            icon: Icon(themeController.themeIcon, color: Colors.white),
+            onPressed: () => themeController.toggleTheme(),
+          ),
+        ],
       ),
+
+      /// Body content
       body: _bottomNavIndex == 0
           ? Column(
         children: [
@@ -114,17 +123,14 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
                 ? const ShimmerLoader()
                 : RefreshIndicator(
               onRefresh: () async {
-                await controller.fetchNews(
-                    category: categories[_currentIndex]);
+                await controller.fetchNews(category: categories[_currentIndex]);
               },
               child: ListView.builder(
                 itemCount: controller.newsList.length,
                 itemBuilder: (context, index) {
                   final article = controller.newsList[index];
-                  final isJuniorMode =
-                      controller.currentCategory == 'junior';
-                  return NewsCard(
-                      article: article, isJunior: isJuniorMode);
+                  final isJuniorMode = controller.currentCategory == 'junior';
+                  return NewsCard(article: article, isJunior: isJuniorMode);
                 },
               ),
             ),
@@ -132,15 +138,47 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
         ],
       )
           : _bottomNavPages[_bottomNavIndex],
-      bottomNavigationBar: _buildBottomNavBar(),
+
+      /// Bottom Navigation
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Constants.accentColor,
+          boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(Icons.home, 0),
+            _buildNavItem(Icons.search, 1),
+            _buildNavItem(Icons.child_care, 4),
+            _buildNavItem(Icons.smart_toy_outlined, 2),
+            _buildNavItem(Icons.person, 3),
+          ],
+        ),
+      ),
     );
   }
 
-  /// 🌈 Visually enhanced category bar
+  String _getPageTitle(int index) {
+    switch (index) {
+      case 1:
+        return "Search News";
+      case 2:
+        return "AI ChatBot";
+      case 3:
+        return "Profile";
+      case 4:
+        return "Junior Mode";
+      default:
+        return "truthlens+";
+    }
+  }
+
   Widget _buildCategoryTabs() {
     return Container(
       height: 70,
-      color: Constants.backgroundColor,
+      color: Theme.of(context).scaffoldBackgroundColor,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: categoryData.length,
@@ -201,28 +239,6 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
     );
   }
 
-  /// 🧭 Bottom navigation bar (with Junior Mode)
-  Widget _buildBottomNavBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Constants.accentColor,
-        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(Icons.home, 0),
-          _buildNavItem(Icons.search, 1),
-          _buildNavItem(Icons.child_care, 4), // 🧒 Junior Mode
-          _buildNavItem(Icons.smart_toy_outlined, 2),
-          _buildNavItem(Icons.person, 3),
-        ],
-      ),
-    );
-  }
-
-  /// 📱 Helper for bottom nav buttons
   Widget _buildNavItem(IconData icon, int index, {String? label}) {
     final isSelected = _bottomNavIndex == index;
 

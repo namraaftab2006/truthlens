@@ -3,8 +3,10 @@ import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:provider/provider.dart';
 import '../../models/news_model.dart';
 import '../../utils/constants.dart';
+import '../../controllers/theme_controller.dart';
 
 class NewsDetailView extends StatefulWidget {
   final NewsArticle article;
@@ -17,8 +19,6 @@ class NewsDetailView extends StatefulWidget {
 class _NewsDetailViewState extends State<NewsDetailView> {
   final FlutterTts flutterTts = FlutterTts();
   bool isPlaying = false;
-
-  // 🆕 Added: speech rate state
   double _speechRate = 0.5;
 
   Future<void> _launchURL(String url) async {
@@ -36,7 +36,7 @@ class _NewsDetailViewState extends State<NewsDetailView> {
 
     await flutterTts.setLanguage("en-US");
     await flutterTts.setPitch(1.0);
-    await flutterTts.setSpeechRate(_speechRate); // 🆕 dynamic rate
+    await flutterTts.setSpeechRate(_speechRate);
     await flutterTts.speak(text);
     setState(() => isPlaying = true);
   }
@@ -54,29 +54,44 @@ class _NewsDetailViewState extends State<NewsDetailView> {
 
   @override
   Widget build(BuildContext context) {
+    final themeController = Provider.of<ThemeController>(context);
+    final theme = Theme.of(context);
     final article = widget.article;
+
     return Scaffold(
-      backgroundColor: Constants.backgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor, // ✅ theme-based
       appBar: AppBar(
-        backgroundColor: Constants.accentColor,
-        title:
-        const Text('News Details', style: TextStyle(color: Colors.white)),
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        title: Text(
+          'News Details',
+          style: theme.appBarTheme.titleTextStyle ??
+              const TextStyle(color: Colors.white),
+        ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.share, color: Colors.white),
+            icon: Icon(Icons.share, color: theme.appBarTheme.foregroundColor),
             onPressed: () {
               if (article.link != null) Share.share(article.link!);
             },
           ),
+          // 🌗 Add theme toggle in AppBar
+          IconButton(
+            icon: Icon(themeController.themeIcon,
+                color: theme.appBarTheme.foregroundColor),
+            onPressed: themeController.toggleTheme,
+            tooltip: 'Change Theme',
+          ),
         ],
       ),
+
+      // 📄 Body
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 🖼️ Image Section
+            // 🖼️ Image
             if (article.imageUrl != null && article.imageUrl!.isNotEmpty)
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
@@ -87,11 +102,11 @@ class _NewsDetailViewState extends State<NewsDetailView> {
                 height: 200,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: theme.dividerColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.image_not_supported,
-                    size: 60, color: Colors.grey),
+                child: Icon(Icons.image_not_supported,
+                    size: 60, color: theme.iconTheme.color),
               ),
 
             const SizedBox(height: 20),
@@ -99,49 +114,57 @@ class _NewsDetailViewState extends State<NewsDetailView> {
             // 📰 Title
             Text(
               article.title,
-              style:
-              const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ) ??
+                  const TextStyle(
+                      fontSize: 22, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 10),
 
-            // 🕒 Source & Date
+            // 🕒 Source + Date
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   article.source ?? 'Unknown Source',
-                  style:
-                  const TextStyle(fontSize: 14, color: Colors.black54),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.hintColor,
+                  ),
                 ),
                 Text(
                   article.pubDate != null
                       ? DateFormat('dd MMM yyyy')
                       .format(DateTime.parse(article.pubDate!))
                       : '',
-                  style:
-                  const TextStyle(fontSize: 14, color: Colors.black54),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.hintColor,
+                  ),
                 ),
               ],
             ),
 
             const Divider(height: 30, thickness: 1.2),
 
-            // 📖 Description + Content
+            // 📖 Description
             Text(
               article.description,
-              style: const TextStyle(fontSize: 16, height: 1.5),
+              style: theme.textTheme.bodyMedium?.copyWith(fontSize: 16, height: 1.5),
             ),
             const SizedBox(height: 20),
+
+            // 📘 Content (if available)
             if (article.content != null && article.content!.isNotEmpty)
               Text(
                 article.content!,
-                style: const TextStyle(fontSize: 15, height: 1.5),
+                style: theme.textTheme.bodyMedium?.copyWith(fontSize: 15, height: 1.5),
               ),
 
             const SizedBox(height: 30),
 
-            // 🔊 Listen / Stop Button
+            // 🔊 Listen / Stop
             Center(
               child: ElevatedButton.icon(
                 onPressed: isPlaying ? _stop : _speak,
@@ -160,16 +183,15 @@ class _NewsDetailViewState extends State<NewsDetailView> {
 
             const SizedBox(height: 10),
 
-            // 🆕 Speech Speed Slider
+            // 🎚️ Speed Control
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   "Adjust Reading Speed:",
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87),
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 Slider(
                   value: _speechRate,
@@ -188,7 +210,7 @@ class _NewsDetailViewState extends State<NewsDetailView> {
 
             const SizedBox(height: 20),
 
-            // 🌐 Open Full Article Button
+            // 🌐 Open Full Article
             ElevatedButton.icon(
               onPressed: () {
                 if (article.link != null) _launchURL(article.link!);

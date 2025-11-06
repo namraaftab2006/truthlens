@@ -3,10 +3,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:country_picker/country_picker.dart';
+import 'package:flutter/services.dart'; // 🔹 for inputFormatters
 import '../../utils/constants.dart';
 import '../auth/signup_view.dart';
 import '../../widgets/custom_textfield.dart';
 import '../home/saved_news_view.dart';
+import 'package:provider/provider.dart';
+import '../../controllers/theme_controller.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -140,7 +143,9 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   // 🔹 Reusable Stats Box Widget
-  Widget _buildStatsBox(String label, int count, {VoidCallback? onTap}) {
+  Widget _buildStatsBox(BuildContext context, String label, int count,
+      {VoidCallback? onTap}) {
+    final theme = Theme.of(context);
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
@@ -148,11 +153,11 @@ class _ProfileViewState extends State<ProfileView> {
           padding: const EdgeInsets.symmetric(vertical: 12),
           margin: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: theme.cardColor,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black12,
+                color: theme.shadowColor.withOpacity(0.15),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -162,15 +167,16 @@ class _ProfileViewState extends State<ProfileView> {
             children: [
               Text(
                 count.toString(),
-                style: const TextStyle(
+                style: theme.textTheme.bodyLarge?.copyWith(
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 label,
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.hintColor,
+                ),
               ),
             ],
           ),
@@ -182,20 +188,10 @@ class _ProfileViewState extends State<ProfileView> {
   // 🔹 UI
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Constants.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Constants.accentColor,
-        title: const Text('Profile', style: TextStyle(color: Colors.white)),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
-            tooltip: 'Logout',
-            onPressed: _logout,
-          ),
-        ],
-      ),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SafeArea(
@@ -205,32 +201,27 @@ class _ProfileViewState extends State<ProfileView> {
             key: _formKey,
             child: Column(
               children: [
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 45,
-                  backgroundColor: Constants.accentColor,
-                  child:
-                  Icon(Icons.person, color: Colors.white, size: 50),
+                  backgroundColor: theme.colorScheme.primary,
+                  child: const Icon(Icons.person,
+                      color: Colors.white, size: 50),
                 ),
                 const SizedBox(height: 15),
 
                 // 🔹 User Stats Row
                 Row(
                   children: [
-                    _buildStatsBox('Followings', _followings),
-                    _buildStatsBox(
-                      'Saved',
-                      _saved,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const SavedNewsView(),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildStatsBox('Bookmarks', _bookmarks),
-                    _buildStatsBox('Chats', _chats),
+                    _buildStatsBox(context, 'Followings', _followings),
+                    _buildStatsBox(context, 'Saved', _saved, onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const SavedNewsView()),
+                      );
+                    }),
+                    _buildStatsBox(context, 'Bookmarks', _bookmarks),
+                    _buildStatsBox(context, 'Chats', _chats),
                   ],
                 ),
 
@@ -240,7 +231,8 @@ class _ProfileViewState extends State<ProfileView> {
                 CustomTextField(
                   controller: _nameController,
                   hintText: 'Name',
-                  validator: (v) => v!.isEmpty ? 'Enter name' : null,
+                  validator: (v) =>
+                  v!.isEmpty ? 'Enter your name' : null,
                 ),
                 const SizedBox(height: 15),
                 CustomTextField(
@@ -259,7 +251,16 @@ class _ProfileViewState extends State<ProfileView> {
                 CustomTextField(
                   controller: _phoneController,
                   hintText: 'Mobile Number',
-                  textInputType: TextInputType.phone,
+                  textInputType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return 'Enter mobile number';
+                    if (v.length != 10) return 'Mobile number must be 10 digits';
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 15),
                 CustomTextField(
@@ -271,16 +272,34 @@ class _ProfileViewState extends State<ProfileView> {
 
                 const SizedBox(height: 25),
 
+                // 🔹 Save Changes button
                 ElevatedButton(
                   onPressed: _updateUserProfile,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Constants.accentColor,
+                    backgroundColor: theme.colorScheme.primary,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 40, vertical: 12),
                   ),
                   child: const Text(
                     'Save Changes',
                     style: TextStyle(color: Colors.white),
+                  ),
+                ),
+
+                const SizedBox(height: 15),
+
+                // 🔹 Logout button below Save Changes
+                ElevatedButton.icon(
+                  onPressed: _logout,
+                  icon: const Icon(Icons.logout, color: Colors.white),
+                  label: const Text(
+                    'Logout',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 40, vertical: 12),
                   ),
                 ),
               ],

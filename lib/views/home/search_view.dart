@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../controllers/news_controller.dart';
-import '../../utils/constants.dart';
+import '../../controllers/theme_controller.dart';
 import '../../widgets/news_card.dart';
 import 'shimmer_loader.dart';
 
@@ -26,14 +26,11 @@ class _SearchViewState extends State<SearchView> {
   @override
   Widget build(BuildContext context) {
     final controller = Provider.of<NewsController>(context);
+    final themeController = Provider.of<ThemeController>(context);
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: Constants.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Constants.accentColor,
-        title: const Text('Search News', style: TextStyle(color: Colors.white)),
-        centerTitle: true,
-      ),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Column(
         children: [
           Padding(
@@ -42,16 +39,18 @@ class _SearchViewState extends State<SearchView> {
               controller: _searchController,
               textInputAction: TextInputAction.search,
               onSubmitted: (_) => _performSearch(controller),
+              style: TextStyle(color: theme.textTheme.bodyLarge?.color),
               decoration: InputDecoration(
                 hintText: 'Search any topic...',
+                hintStyle: TextStyle(color: theme.hintColor),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: theme.cardColor, // 🆕 adapts to theme
                 suffixIcon: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (_searchController.text.isNotEmpty)
                       IconButton(
-                        icon: const Icon(Icons.close, color: Colors.grey),
+                        icon: Icon(Icons.close, color: theme.iconTheme.color),
                         onPressed: () {
                           _searchController.clear();
                           controller.fetchTopHeadlines();
@@ -59,14 +58,26 @@ class _SearchViewState extends State<SearchView> {
                         },
                       ),
                     IconButton(
-                      icon: const Icon(Icons.search, color: Constants.accentColor),
+                      icon: Icon(Icons.search,
+                          color: theme.colorScheme.primary),
                       onPressed: () => _performSearch(controller),
                     ),
                   ],
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Constants.accentColor),
+                  borderSide:
+                  BorderSide(color: theme.colorScheme.primary, width: 1.2),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                  BorderSide(color: theme.dividerColor.withOpacity(0.4)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                  BorderSide(color: theme.colorScheme.primary, width: 1.5),
                 ),
               ),
               onChanged: (_) => setState(() {}),
@@ -76,7 +87,12 @@ class _SearchViewState extends State<SearchView> {
             child: controller.isLoading
                 ? const ShimmerLoader()
                 : controller.newsList.isEmpty
-                ? const Center(child: Text('No news found. Try searching something else!'))
+                ? Center(
+              child: Text(
+                'No news found. Try searching something else!',
+                style: TextStyle(color: theme.hintColor),
+              ),
+            )
                 : ListView.builder(
               itemCount: controller.newsList.length,
               itemBuilder: (context, index) {

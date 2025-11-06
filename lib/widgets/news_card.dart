@@ -7,6 +7,8 @@ import 'package:flutter_tts/flutter_tts.dart';
 import '../models/news_model.dart';
 import '../utils/constants.dart';
 import '../views/home/news_detail_view.dart';
+import 'package:provider/provider.dart';
+import '../controllers/theme_controller.dart';
 
 class NewsCard extends StatefulWidget {
   final NewsArticle article;
@@ -61,9 +63,8 @@ class _NewsCardState extends State<NewsCard> {
     flutterTts.setCompletionHandler(() => setState(() => isSpeaking = false));
     flutterTts.setErrorHandler((msg) {
       setState(() => isSpeaking = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('TTS error: $msg')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('TTS error: $msg')));
     });
   }
 
@@ -77,7 +78,9 @@ class _NewsCardState extends State<NewsCard> {
       if (docSnap.exists) {
         final data = docSnap.data()!;
         setState(() {
-          likeCount = (data['likes'] ?? 0) is int ? data['likes'] : int.tryParse('${data['likes']}') ?? 0;
+          likeCount = (data['likes'] ?? 0) is int
+              ? data['likes']
+              : int.tryParse('${data['likes']}') ?? 0;
           comments = List<Map<String, dynamic>>.from(data['comments'] ?? []);
         });
       } else {
@@ -121,8 +124,11 @@ class _NewsCardState extends State<NewsCard> {
 
     final docId = _docIdFromLink(widget.article.link);
     final articleRef = _firestore.collection('articles').doc(docId);
-    final userLikeRef =
-    _firestore.collection('users').doc(user.uid).collection('likedArticles').doc(docId);
+    final userLikeRef = _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('likedArticles')
+        .doc(docId);
 
     setState(() {
       isLiked = !isLiked;
@@ -133,15 +139,22 @@ class _NewsCardState extends State<NewsCard> {
     try {
       await _firestore.runTransaction((tx) async {
         final snapshot = await tx.get(articleRef);
-        int currentLikes = snapshot.exists ? (snapshot.data()!['likes'] ?? 0) : 0;
-        tx.set(articleRef, {
-          'title': widget.article.title,
-          'link': widget.article.link,
-          'likes': isLiked ? currentLikes + 1 : (currentLikes - 1).clamp(0, 999999),
-        }, SetOptions(merge: true));
+        int currentLikes =
+        snapshot.exists ? (snapshot.data()!['likes'] ?? 0) : 0;
+        tx.set(
+            articleRef,
+            {
+              'title': widget.article.title,
+              'link': widget.article.link,
+              'likes': isLiked
+                  ? currentLikes + 1
+                  : (currentLikes - 1).clamp(0, 999999),
+            },
+            SetOptions(merge: true));
 
         if (isLiked) {
-          tx.set(userLikeRef, {'liked': true, 'timestamp': FieldValue.serverTimestamp()});
+          tx.set(userLikeRef,
+              {'liked': true, 'timestamp': FieldValue.serverTimestamp()});
         } else {
           tx.delete(userLikeRef);
         }
@@ -161,8 +174,11 @@ class _NewsCardState extends State<NewsCard> {
     }
 
     final docId = _docIdFromLink(widget.article.link);
-    final userSavedRef =
-    _firestore.collection('users').doc(user.uid).collection('savedArticles').doc(docId);
+    final userSavedRef = _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('savedArticles')
+        .doc(docId);
 
     try {
       if (isSaved) {
@@ -216,7 +232,8 @@ class _NewsCardState extends State<NewsCard> {
                     : ListView.builder(
                   itemCount: comments.length,
                   itemBuilder: (_, i) => ListTile(
-                    leading: const Icon(Icons.person, color: Colors.grey),
+                    leading:
+                    const Icon(Icons.person, color: Colors.grey),
                     title: Text(comments[i]['text']),
                   ),
                 ),
@@ -242,7 +259,10 @@ class _NewsCardState extends State<NewsCard> {
                       setModalState(() => comments.add(newComment));
 
                       final docId = _docIdFromLink(widget.article.link);
-                      await _firestore.collection('articles').doc(docId).set({
+                      await _firestore
+                          .collection('articles')
+                          .doc(docId)
+                          .set({
                         'comments': comments,
                         'title': widget.article.title,
                         'link': widget.article.link,
@@ -284,10 +304,23 @@ class _NewsCardState extends State<NewsCard> {
       Colors.purple[50],
       Colors.teal[50],
     ];
-    final bgColor = widget.isJunior
-        ? (pastelColors[(widget.article.title.hashCode) % pastelColors.length] ??
-        Colors.yellow[50])
-        : Constants.backgroundColor;
+
+    final themeController = Provider.of<ThemeController>(context);
+    final isDark = themeController.themeIndex == 2;
+
+    final Color cardColor = widget.isJunior
+        ? (pastelColors[
+    (widget.article.title.hashCode) % pastelColors.length] ??
+        Colors.yellow[50]!)
+        : themeController.themeIndex == 0
+        ? Constants.defaultBackground
+        : themeController.themeIndex == 1
+        ? Constants.lightBackground
+        : Constants.darkBackground;
+
+    // ✅ FIX: Keep junior text black always
+    final textColor =
+    widget.isJunior ? Colors.black : (isDark ? Colors.white : Colors.black87);
 
     return InkWell(
       onTap: () => Navigator.push(
@@ -296,7 +329,7 @@ class _NewsCardState extends State<NewsCard> {
             builder: (_) => NewsDetailView(article: widget.article)),
       ),
       child: Card(
-        color: bgColor,
+        color: cardColor,
         margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         elevation: 4,
@@ -332,14 +365,16 @@ class _NewsCardState extends State<NewsCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(widget.article.title,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16)),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: textColor)),
                   const SizedBox(height: 8),
                   Text(
                     widget.article.description,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.black87),
+                    style: TextStyle(color: textColor),
                   ),
                   const SizedBox(height: 10),
                   Row(
@@ -355,7 +390,7 @@ class _NewsCardState extends State<NewsCard> {
                               isLiked ? Colors.red : Constants.likeColor,
                             ),
                             onPressed: _toggleLike),
-                        Text('$likeCount'),
+                        Text('$likeCount', style: TextStyle(color: textColor)),
                       ]),
                       IconButton(
                           icon: Icon(

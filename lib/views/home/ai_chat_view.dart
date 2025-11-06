@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
+import '../../controllers/theme_controller.dart';
 import '../../utils/constants.dart';
 import '../../services/ai_service.dart';
 
@@ -67,7 +69,6 @@ class _AiChatViewState extends State<AiChatView>
 
     _speechAvailable = await _speech.initialize(
       onStatus: (status) {
-        debugPrint("Speech status: $status");
         if (status == 'done' || status == 'notListening') {
           _hideListeningOverlay();
           setState(() => _isListening = false);
@@ -91,7 +92,7 @@ class _AiChatViewState extends State<AiChatView>
 
   /// 🔊 Initialize Text to Speech
   Future<void> _initTts() async {
-    await _flutterTts.setLanguage("en-IN"); // Better for Indian accent
+    await _flutterTts.setLanguage("en-IN");
     await _flutterTts.setPitch(1.0);
     await _flutterTts.setSpeechRate(0.45);
     _flutterTts.setCompletionHandler(() {
@@ -127,10 +128,16 @@ class _AiChatViewState extends State<AiChatView>
   Future<void> _simulateBotResponse(String userMessage) async {
     String reply;
     try {
-      reply = await AiService.sendMessage(userMessage);
-    } catch (_) {
-      reply = "🤖 This is a demo response. ML API not available yet.";
+      if (userMessage.toLowerCase().contains("news")) {
+        reply = await AiService.predictNews(userMessage);
+        reply = "📰 Prediction: $reply";
+      } else {
+        reply = await AiService.sendMessage(userMessage);
+      }
+    } catch (e) {
+      reply = "🤖 Unable to reach AI service right now.";
     }
+
     _addMessage(reply, isUser: false);
   }
 
@@ -169,7 +176,7 @@ class _AiChatViewState extends State<AiChatView>
       await _speech.listen(
         listenFor: const Duration(seconds: 30),
         pauseFor: const Duration(seconds: 5),
-        localeId: "en-IN", // Fix for Hinglish/Indian English
+        localeId: "en-IN",
         onResult: (result) {
           if (result.recognizedWords.isNotEmpty) {
             setState(() {
@@ -225,9 +232,8 @@ class _AiChatViewState extends State<AiChatView>
     _listeningOverlay = null;
   }
 
-  /// 🔊 Speak a message
   Future<void> _speak(String text) async {
-    await _flutterTts.stop(); // Prevent overlapping voices
+    await _flutterTts.stop();
     await _flutterTts.speak(text);
     setState(() => _isSpeaking = true);
   }
@@ -239,13 +245,12 @@ class _AiChatViewState extends State<AiChatView>
 
   @override
   Widget build(BuildContext context) {
+    final themeController = Provider.of<ThemeController>(context);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Constants.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Constants.accentColor,
-        title: const Text('AI Chatbot', style: TextStyle(color: Colors.white)),
-        centerTitle: true,
-      ),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Column(
         children: [
           Expanded(
@@ -274,8 +279,8 @@ class _AiChatViewState extends State<AiChatView>
                         ),
                         decoration: BoxDecoration(
                           color: isUser
-                              ? Constants.accentColor.withOpacity(0.9)
-                              : Colors.white,
+                              ? Constants.accentColor
+                              : theme.cardColor,
                           borderRadius: BorderRadius.only(
                             topLeft: const Radius.circular(16),
                             topRight: const Radius.circular(16),
@@ -292,7 +297,9 @@ class _AiChatViewState extends State<AiChatView>
                         child: Text(
                           text,
                           style: TextStyle(
-                            color: isUser ? Colors.white : Colors.black87,
+                            color: isUser
+                                ? Colors.white
+                                : theme.textTheme.bodyLarge?.color,
                             fontSize: 15,
                           ),
                         ),
@@ -325,19 +332,21 @@ class _AiChatViewState extends State<AiChatView>
               },
             ),
           ),
-          _buildMessageInput(),
+          _buildMessageInput(theme),
         ],
       ),
     );
   }
 
-  Widget _buildMessageInput() {
+  Widget _buildMessageInput(ThemeData theme) {
     return SafeArea(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Colors.grey, width: 0.2)),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          border: Border(
+              top: BorderSide(
+                  color: theme.dividerColor.withOpacity(0.2), width: 0.5)),
         ),
         child: Row(
           children: [
@@ -345,8 +354,9 @@ class _AiChatViewState extends State<AiChatView>
               duration: const Duration(milliseconds: 300),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color:
-                _isListening ? Colors.red.withOpacity(0.2) : Colors.transparent,
+                color: _isListening
+                    ? Colors.red.withOpacity(0.2)
+                    : Colors.transparent,
                 boxShadow: _isListening
                     ? [
                   BoxShadow(
@@ -362,7 +372,7 @@ class _AiChatViewState extends State<AiChatView>
               child: IconButton(
                 icon: Icon(
                   _isListening ? Icons.mic : Icons.mic_none,
-                  color: _isListening ? Colors.red : Colors.grey[700],
+                  color: _isListening ? Colors.red : theme.iconTheme.color,
                   size: _isListening ? 30 : 26,
                 ),
                 onPressed: _listen,
@@ -375,11 +385,13 @@ class _AiChatViewState extends State<AiChatView>
                 onSubmitted: (_) => _handleSend(),
                 decoration: InputDecoration(
                   hintText: 'Type or speak your message...',
+                  hintStyle: theme.textTheme.bodyMedium,
                   contentPadding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(25),
-                    borderSide: const BorderSide(color: Colors.grey),
+                    borderSide:
+                    BorderSide(color: theme.dividerColor.withOpacity(0.3)),
                   ),
                 ),
               ),
