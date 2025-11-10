@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import '../utils/constants.dart';
 
-/// 🌗 ThemeController — handles 3 themes: Default, Light, and Dark
 class ThemeController extends ChangeNotifier {
-  int _themeIndex = 0; // 0 = Default, 1 = Light, 2 = Dark
+  int _themeIndex = 0;
 
   int get themeIndex => _themeIndex;
 
@@ -34,7 +33,7 @@ class ThemeController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 🟡 Default mild beige theme
+
   ThemeData get _defaultTheme => ThemeData(
     brightness: Brightness.light,
     scaffoldBackgroundColor: Constants.defaultBackground,
@@ -50,7 +49,7 @@ class ThemeController extends ChangeNotifier {
     ),
   );
 
-  // ⚪ Light theme
+
   ThemeData get _lightTheme => ThemeData(
     brightness: Brightness.light,
     scaffoldBackgroundColor: Constants.lightBackground,
@@ -66,7 +65,7 @@ class ThemeController extends ChangeNotifier {
     ),
   );
 
-  // ⚫ Dark theme
+
   ThemeData get _darkTheme => ThemeData(
     brightness: Brightness.dark,
     scaffoldBackgroundColor: Constants.darkBackground,
@@ -82,7 +81,7 @@ class ThemeController extends ChangeNotifier {
     ),
   );
 
-  // 🌗 Helper for AppBar icon
+
   IconData get themeIcon {
     switch (_themeIndex) {
       case 1:

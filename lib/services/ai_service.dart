@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AiService {
-  // 🌐 Base URL of your Flask API on Render
+
   static const String baseUrl = "https://fake-newss.onrender.com";
 
-  /// 🏠 GET basic API info
+
   static Future<String> getApiInfo() async {
     try {
       final Uri url = Uri.parse("$baseUrl/");
@@ -23,7 +23,7 @@ class AiService {
     }
   }
 
-  /// 📰 POST /predict → returns REAL/FAKE + confidence
+
   static Future<String> predictNews(String text) async {
     try {
       final Uri url = Uri.parse("$baseUrl/predict");
@@ -53,7 +53,7 @@ class AiService {
     }
   }
 
-  /// 💬 POST /chatbot → returns chatbot reply
+
   static Future<String> sendMessage(String message) async {
     try {
       final Uri url = Uri.parse("$baseUrl/chatbot");
@@ -69,7 +69,7 @@ class AiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        // Flask returns "response" key for chatbot reply
+
         return data['response'] ??
             data['reply'] ??
             "🤖 No reply from chatbot.";

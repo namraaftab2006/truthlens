@@ -32,7 +32,7 @@ class ApiService {
           articles = data['articles'];
         }
 
-        // 🧒 Junior Mode: filter + simplify
+
         if (category == 'junior') {
           articles = articles.where((a) {
             final desc = (a['description'] ?? '').toString().toLowerCase();
@@ -45,7 +45,7 @@ class ApiService {
                 !title.contains('war');
           }).toList();
 
-          // Simplify the language
+
           articles = articles.map((a) {
             String desc = a['description']?.toString() ?? '';
             desc = desc

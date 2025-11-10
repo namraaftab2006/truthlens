@@ -20,7 +20,7 @@ class NewsArticle {
   });
 
   factory NewsArticle.fromJson(Map<String, dynamic> json) {
-    // Handle cases where 'source' may be a Map or a String
+
     String? sourceName;
     if (json['source'] is Map) {
       sourceName = json['source']?['name']?.toString();
@@ -28,7 +28,7 @@ class NewsArticle {
       sourceName = json['source'];
     }
 
-    // Handle category that can be List or String
+
     String categoryValue = '';
     if (json['category'] is List && (json['category'] as List).isNotEmpty) {
       categoryValue = json['category'][0].toString();

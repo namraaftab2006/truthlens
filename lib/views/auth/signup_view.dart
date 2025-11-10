@@ -1,4 +1,3 @@
-// lib/views/auth/signup_view.dart
 import 'package:flutter/material.dart';
 import '../../widgets/logo_widget.dart';
 import '../../widgets/custom_textfield.dart';
