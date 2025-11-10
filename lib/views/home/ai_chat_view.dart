@@ -125,12 +125,22 @@ class _AiChatViewState extends State<AiChatView>
     });
   }
 
+  /// 🤖 Handles chat + fake news prediction
   Future<void> _simulateBotResponse(String userMessage) async {
     String reply;
     try {
-      if (userMessage.toLowerCase().contains("news")) {
+      final lower = userMessage.toLowerCase();
+
+      // 🧠 Smarter routing: if it's a long message or looks like a news statement
+      final isNewsLike = lower.contains("news") ||
+          lower.contains("report") ||
+          lower.contains("claims") ||
+          lower.contains("says") ||
+          lower.split(" ").length > 6;
+
+      if (isNewsLike) {
         reply = await AiService.predictNews(userMessage);
-        reply = "📰 Prediction: $reply";
+        reply = "📰 $reply";
       } else {
         reply = await AiService.sendMessage(userMessage);
       }
@@ -345,8 +355,11 @@ class _AiChatViewState extends State<AiChatView>
         decoration: BoxDecoration(
           color: theme.cardColor,
           border: Border(
-              top: BorderSide(
-                  color: theme.dividerColor.withOpacity(0.2), width: 0.5)),
+            top: BorderSide(
+              color: theme.dividerColor.withOpacity(0.2),
+              width: 0.5,
+            ),
+          ),
         ),
         child: Row(
           children: [
