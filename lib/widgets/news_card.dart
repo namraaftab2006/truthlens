@@ -56,7 +56,7 @@ class _NewsCardState extends State<NewsCard> {
   Future<void> _setupTts() async {
     await flutterTts.setLanguage("en-IN");
     await flutterTts.setPitch(1.0);
-    await flutterTts.setSpeechRate(0.9);
+    await flutterTts.setSpeechRate(0.45);
     await flutterTts.awaitSpeakCompletion(true);
 
     flutterTts.setStartHandler(() => setState(() => isSpeaking = true));
@@ -113,6 +113,7 @@ class _NewsCardState extends State<NewsCard> {
     }
   }
 
+  // ✅ UPDATED to sync arrays in user doc (for ProfileView)
   Future<void> _toggleLike() async {
     final user = _auth.currentUser;
     if (user == null) {
@@ -124,11 +125,8 @@ class _NewsCardState extends State<NewsCard> {
 
     final docId = _docIdFromLink(widget.article.link);
     final articleRef = _firestore.collection('articles').doc(docId);
-    final userLikeRef = _firestore
-        .collection('users')
-        .doc(user.uid)
-        .collection('likedArticles')
-        .doc(docId);
+    final userRef = _firestore.collection('users').doc(user.uid);
+    final userLikeRef = userRef.collection('likedArticles').doc(docId);
 
     setState(() {
       isLiked = !isLiked;
@@ -142,21 +140,29 @@ class _NewsCardState extends State<NewsCard> {
         int currentLikes =
         snapshot.exists ? (snapshot.data()!['likes'] ?? 0) : 0;
         tx.set(
-            articleRef,
-            {
-              'title': widget.article.title,
-              'link': widget.article.link,
-              'likes': isLiked
-                  ? currentLikes + 1
-                  : (currentLikes - 1).clamp(0, 999999),
-            },
-            SetOptions(merge: true));
+          articleRef,
+          {
+            'title': widget.article.title,
+            'link': widget.article.link,
+            'likes': isLiked
+                ? currentLikes + 1
+                : (currentLikes - 1).clamp(0, 999999),
+          },
+          SetOptions(merge: true),
+        );
 
         if (isLiked) {
-          tx.set(userLikeRef,
+          tx.set(
+              userLikeRef,
               {'liked': true, 'timestamp': FieldValue.serverTimestamp()});
+          tx.update(userRef, {
+            'likedArticles': FieldValue.arrayUnion([docId])
+          });
         } else {
           tx.delete(userLikeRef);
+          tx.update(userRef, {
+            'likedArticles': FieldValue.arrayRemove([docId])
+          });
         }
       });
     } catch (e) {
@@ -164,6 +170,7 @@ class _NewsCardState extends State<NewsCard> {
     }
   }
 
+  // ✅ UPDATED to sync arrays in user doc (for ProfileView)
   Future<void> _toggleSave() async {
     final user = _auth.currentUser;
     if (user == null) {
@@ -174,15 +181,15 @@ class _NewsCardState extends State<NewsCard> {
     }
 
     final docId = _docIdFromLink(widget.article.link);
-    final userSavedRef = _firestore
-        .collection('users')
-        .doc(user.uid)
-        .collection('savedArticles')
-        .doc(docId);
+    final userRef = _firestore.collection('users').doc(user.uid);
+    final userSavedRef = userRef.collection('savedArticles').doc(docId);
 
     try {
       if (isSaved) {
         await userSavedRef.delete();
+        await userRef.update({
+          'savedArticles': FieldValue.arrayRemove([docId])
+        });
         setState(() => isSaved = false);
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('Removed from Saved')));
@@ -195,6 +202,9 @@ class _NewsCardState extends State<NewsCard> {
           'source': widget.article.source,
           'pubDate': widget.article.pubDate,
           'timestamp': FieldValue.serverTimestamp(),
+        });
+        await userRef.update({
+          'savedArticles': FieldValue.arrayUnion([docId])
         });
         setState(() => isSaved = true);
         ScaffoldMessenger.of(context)
@@ -318,7 +328,6 @@ class _NewsCardState extends State<NewsCard> {
         ? Constants.lightBackground
         : Constants.darkBackground;
 
-    // ✅ FIX: Keep junior text black always
     final textColor =
     widget.isJunior ? Colors.black : (isDark ? Colors.white : Colors.black87);
 
