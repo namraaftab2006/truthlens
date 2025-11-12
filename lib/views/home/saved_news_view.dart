@@ -46,7 +46,7 @@ class SavedNewsView extends StatelessWidget {
                   title: Text(article['title'] ?? 'Untitled'),
                   subtitle: Text(article['source'] ?? ''),
                   onTap: () {
-                    // open detailed view later
+
                   },
                 ),
               );
