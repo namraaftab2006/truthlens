@@ -47,13 +47,20 @@ class _AiChatViewState extends State<AiChatView>
       if (_isListening) setState(() {});
     });
 
+
+    Future.delayed(const Duration(milliseconds: 500), () {
+      _addMessage(
+        "Hello! 👋 I'm here to help you verify news.\nJust send me any message or news headline 😊",
+        isUser: false,
+      );
+    });
+
     if (widget.initialMessage?.isNotEmpty ?? false) {
       _addMessage(widget.initialMessage!, isUser: true);
       _simulateBotResponse(widget.initialMessage!);
     }
   }
 
-  /// 🎙️ Initialize Speech Recognition
   Future<void> _initSpeech() async {
     var micStatus = await Permission.microphone.status;
     if (!micStatus.isGranted) {
@@ -82,15 +89,8 @@ class _AiChatViewState extends State<AiChatView>
         _pulseController.stop();
       },
     );
-
-    if (!_speechAvailable) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Speech recognition not available.')),
-      );
-    }
   }
 
-  /// 🔊 Initialize Text to Speech
   Future<void> _initTts() async {
     await _flutterTts.setLanguage("en-IN");
     await _flutterTts.setPitch(1.0);
@@ -125,25 +125,11 @@ class _AiChatViewState extends State<AiChatView>
     });
   }
 
-  /// 🤖 Handles chat + fake news prediction
+
   Future<void> _simulateBotResponse(String userMessage) async {
     String reply;
     try {
-      final lower = userMessage.toLowerCase();
-
-      // 🧠 Smarter routing: if it's a long message or looks like a news statement
-      final isNewsLike = lower.contains("news") ||
-          lower.contains("report") ||
-          lower.contains("claims") ||
-          lower.contains("says") ||
-          lower.split(" ").length > 6;
-
-      if (isNewsLike) {
-        reply = await AiService.predictNews(userMessage);
-        reply = "📰 $reply";
-      } else {
-        reply = await AiService.sendMessage(userMessage);
-      }
+      reply = await AiService.analyzeMessage(userMessage);
     } catch (e) {
       reply = "🤖 Unable to reach AI service right now.";
     }
@@ -160,7 +146,6 @@ class _AiChatViewState extends State<AiChatView>
     _simulateBotResponse(text);
   }
 
-  /// 🎤 Start / Stop Listening
   Future<void> _listen() async {
     var micStatus = await Permission.microphone.status;
     if (!micStatus.isGranted) {
@@ -203,7 +188,6 @@ class _AiChatViewState extends State<AiChatView>
     }
   }
 
-  /// 🎧 Overlay when listening
   void _showListeningOverlay() {
     _hideListeningOverlay();
     final overlay = OverlayEntry(
@@ -257,7 +241,6 @@ class _AiChatViewState extends State<AiChatView>
   Widget build(BuildContext context) {
     final themeController = Provider.of<ThemeController>(context);
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -325,9 +308,6 @@ class _AiChatViewState extends State<AiChatView>
                                 : Icons.volume_up_rounded,
                             color: Constants.accentColor,
                           ),
-                          tooltip: _isSpeaking
-                              ? 'Stop speaking'
-                              : 'Listen to this reply',
                           onPressed: () {
                             if (_isSpeaking) {
                               _stopSpeaking();
@@ -403,8 +383,6 @@ class _AiChatViewState extends State<AiChatView>
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(25),
-                    borderSide:
-                    BorderSide(color: theme.dividerColor.withOpacity(0.3)),
                   ),
                 ),
               ),

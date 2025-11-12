@@ -21,7 +21,7 @@ class NewsController extends ChangeNotifier {
       currentCategory = category;
       currentQuery = query;
 
-      // ✅ Use valid categories for API calls
+
       final apiCategory = category == 'junior' ? 'education' : category;
 
       final articles = await _apiService.fetchNews(
@@ -29,7 +29,7 @@ class NewsController extends ChangeNotifier {
         query: query,
       );
 
-      // ✅ Teen-friendly filter & simplification
+
       if (category == 'junior') {
         final teenSafeKeywords = [
           'education',
@@ -42,7 +42,7 @@ class NewsController extends ChangeNotifier {
           'students',
         ];
 
-        // 🧩 Keep only teen-relevant or positive topics
+
         newsList = articles
             .where((a) {
           final title = a.title.toLowerCase();
@@ -64,7 +64,7 @@ class NewsController extends ChangeNotifier {
         })
             .toList();
 
-        // 🩵 If no matches found, fall back to simplified top news
+
         if (newsList.isEmpty) {
           final fallbackArticles =
           await _apiService.fetchNews(category: 'top');
@@ -101,7 +101,7 @@ class NewsController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 🧠 Helper function to simplify complex words for Junior Mode
+
   String _simplifyText(String text) {
     return text
         .replaceAll(RegExp(r'\bapproximately\b', caseSensitive: false), 'about')

@@ -29,8 +29,8 @@ class NewsApp extends StatelessWidget {
             title: 'TruthLens+',
             debugShowCheckedModeBanner: false,
             theme: themeController.currentTheme,
-            darkTheme: themeController.currentTheme, // unified handling
-            themeMode: ThemeMode.light, // avoid system override
+            darkTheme: themeController.currentTheme,
+            themeMode: ThemeMode.light,
             routes: AppRoutes.routes,
             initialRoute: AppRoutes.splash1,
             onUnknownRoute: (settings) =>

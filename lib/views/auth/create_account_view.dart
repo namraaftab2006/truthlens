@@ -1,4 +1,4 @@
-// lib/views/auth/create_account_view.dart
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../controllers/auth_controller.dart';

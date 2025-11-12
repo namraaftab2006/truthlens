@@ -9,7 +9,6 @@ import 'search_view.dart';
 import 'ai_chat_view.dart';
 import 'profile_view.dart';
 
-/// 🧒 Junior Mode View
 class JuniorModeView extends StatelessWidget {
   const JuniorModeView({super.key});
 
@@ -19,7 +18,6 @@ class JuniorModeView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      // ❌ AppBar removed to avoid duplicates
       body: controller.isLoading
           ? const ShimmerLoader()
           : RefreshIndicator(
@@ -38,7 +36,6 @@ class JuniorModeView extends StatelessWidget {
   }
 }
 
-/// 🏠 Home View with bottom navigation
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
 
@@ -65,11 +62,11 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
   ];
 
   final List<Widget> _bottomNavPages = const [
-    Placeholder(),       // Home feed
-    SearchView(),        // Search
-    AiChatView(),        // AI Chat
-    ProfileView(),       // Profile
-    JuniorModeView(),    // Junior Mode
+    Placeholder(),
+    SearchView(),
+    AiChatView(),
+    ProfileView(),
+    JuniorModeView(),
   ];
 
   @override
@@ -95,7 +92,7 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
-      /// Main AppBar for all tabs
+
       appBar: AppBar(
         backgroundColor: Constants.accentColor,
         title: Text(
@@ -112,7 +109,7 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
         ],
       ),
 
-      /// Body content
+
       body: _bottomNavIndex == 0
           ? Column(
         children: [
@@ -139,7 +136,7 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
       )
           : _bottomNavPages[_bottomNavIndex],
 
-      /// Bottom Navigation
+
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Constants.accentColor,
@@ -165,13 +162,13 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
       case 1:
         return "Search News";
       case 2:
-        return "AI ChatBot";
+        return "NewsBuddy";
       case 3:
         return "Profile";
       case 4:
         return "Junior Mode";
       default:
-        return "truthlens+";
+        return "Truthlens+";
     }
   }
 

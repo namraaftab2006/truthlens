@@ -59,7 +59,7 @@ class _NewsDetailViewState extends State<NewsDetailView> {
     final article = widget.article;
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor, // ✅ theme-based
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: theme.appBarTheme.backgroundColor,
         title: Text(
@@ -75,7 +75,7 @@ class _NewsDetailViewState extends State<NewsDetailView> {
               if (article.link != null) Share.share(article.link!);
             },
           ),
-          // 🌗 Add theme toggle in AppBar
+
           IconButton(
             icon: Icon(themeController.themeIcon,
                 color: theme.appBarTheme.foregroundColor),
@@ -111,7 +111,7 @@ class _NewsDetailViewState extends State<NewsDetailView> {
 
             const SizedBox(height: 20),
 
-            // 📰 Title
+
             Text(
               article.title,
               style: theme.textTheme.bodyLarge?.copyWith(
@@ -124,7 +124,7 @@ class _NewsDetailViewState extends State<NewsDetailView> {
 
             const SizedBox(height: 10),
 
-            // 🕒 Source + Date
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -148,14 +148,14 @@ class _NewsDetailViewState extends State<NewsDetailView> {
 
             const Divider(height: 30, thickness: 1.2),
 
-            // 📖 Description
+
             Text(
               article.description,
               style: theme.textTheme.bodyMedium?.copyWith(fontSize: 16, height: 1.5),
             ),
             const SizedBox(height: 20),
 
-            // 📘 Content (if available)
+
             if (article.content != null && article.content!.isNotEmpty)
               Text(
                 article.content!,
@@ -164,7 +164,7 @@ class _NewsDetailViewState extends State<NewsDetailView> {
 
             const SizedBox(height: 30),
 
-            // 🔊 Listen / Stop
+
             Center(
               child: ElevatedButton.icon(
                 onPressed: isPlaying ? _stop : _speak,
@@ -183,7 +183,7 @@ class _NewsDetailViewState extends State<NewsDetailView> {
 
             const SizedBox(height: 10),
 
-            // 🎚️ Speed Control
+
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

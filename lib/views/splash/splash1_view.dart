@@ -14,7 +14,7 @@ class _Splash1ViewState extends State<Splash1View> {
   @override
   void initState() {
     super.initState();
-    // controller handles timer + navigation; setState isn't required here but kept in view for UI updates if needed
+
     _controller.startSplashTimer(context, currentSplash: 1, duration: const Duration(seconds: 3));
   }
 

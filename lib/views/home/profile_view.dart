@@ -3,13 +3,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:country_picker/country_picker.dart';
-import 'package:flutter/services.dart'; // 🔹 for inputFormatters
+import 'package:flutter/services.dart';
 import '../../utils/constants.dart';
 import '../auth/signup_view.dart';
 import '../../widgets/custom_textfield.dart';
 import '../home/saved_news_view.dart';
-import 'package:provider/provider.dart';
-import '../../controllers/theme_controller.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -32,10 +30,7 @@ class _ProfileViewState extends State<ProfileView> {
   String? _country;
   bool _isLoading = false;
 
-  int _followings = 0;
   int _saved = 0;
-  int _bookmarks = 0;
-  int _chats = 0;
 
   @override
   void initState() {
@@ -43,7 +38,6 @@ class _ProfileViewState extends State<ProfileView> {
     _loadUserData();
   }
 
-  // 🔹 Load user data from Firestore
   Future<void> _loadUserData() async {
     final user = _auth.currentUser;
     if (user != null) {
@@ -58,15 +52,12 @@ class _ProfileViewState extends State<ProfileView> {
         _country = data?['country'];
         _countryController.text = _country ?? '';
 
-        _followings = (data?['followings'] as List?)?.length ?? 0;
-        _saved = (data?['savedArticles'] as List?)?.length ?? 0;
-        _bookmarks = data?['bookmarks'] ?? 0;
-        _chats = data?['chats'] ?? 0;
+        final savedArticles = (data?['savedArticles'] as List?) ?? [];
+        _saved = savedArticles.length;
       });
     }
   }
 
-  // 🔹 Update user profile
   Future<void> _updateUserProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -88,12 +79,6 @@ class _ProfileViewState extends State<ProfileView> {
       );
 
       await _loadUserData();
-
-      // 🟢 Navigate to Saved News
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const SavedNewsView()),
-      );
     } catch (e) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -102,7 +87,7 @@ class _ProfileViewState extends State<ProfileView> {
     }
   }
 
-  // 🔹 Pick Date of Birth
+
   void _pickDOB() async {
     final picked = await showDatePicker(
       context: context,
@@ -117,7 +102,6 @@ class _ProfileViewState extends State<ProfileView> {
     }
   }
 
-  // 🔹 Pick Country
   void _pickCountry() {
     showCountryPicker(
       context: context,
@@ -131,7 +115,6 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  // 🔹 Logout user
   void _logout() async {
     await _auth.signOut();
     if (!mounted) return;
@@ -142,39 +125,41 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  // 🔹 Reusable Stats Box Widget
-  Widget _buildStatsBox(BuildContext context, String label, int count,
+  Widget _buildSquareBox(BuildContext context, String label, int count,
       {VoidCallback? onTap}) {
     final theme = Theme.of(context);
-    return Expanded(
+    final double boxSize = MediaQuery.of(context).size.width * 0.2; // 20% of screen width
+
+    return Center(
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          margin: const EdgeInsets.symmetric(horizontal: 4),
+          width: boxSize,
+          height: boxSize,
           decoration: BoxDecoration(
             color: theme.cardColor,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
                 color: theme.shadowColor.withOpacity(0.15),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
               ),
             ],
           ),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 count.toString(),
-                style: theme.textTheme.bodyLarge?.copyWith(
+                style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               Text(
                 label,
-                style: theme.textTheme.bodySmall?.copyWith(
+                style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.hintColor,
                 ),
               ),
@@ -185,7 +170,6 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  // 🔹 UI
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -204,30 +188,27 @@ class _ProfileViewState extends State<ProfileView> {
                 CircleAvatar(
                   radius: 45,
                   backgroundColor: theme.colorScheme.primary,
-                  child: const Icon(Icons.person,
-                      color: Colors.white, size: 50),
+                  child:
+                  const Icon(Icons.person, color: Colors.white, size: 50),
                 ),
-                const SizedBox(height: 15),
+                const SizedBox(height: 20),
 
-                // 🔹 User Stats Row
-                Row(
-                  children: [
-                    _buildStatsBox(context, 'Followings', _followings),
-                    _buildStatsBox(context, 'Saved', _saved, onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const SavedNewsView()),
-                      );
-                    }),
-                    _buildStatsBox(context, 'Bookmarks', _bookmarks),
-                    _buildStatsBox(context, 'Chats', _chats),
-                  ],
+                // 🔹 Only one square Saved box
+                _buildSquareBox(
+                  context,
+                  'Saved',
+                  _saved,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const SavedNewsView()),
+                    );
+                  },
                 ),
 
-                const SizedBox(height: 25),
+                const SizedBox(height: 30),
 
-                // 🔹 Profile Fields
                 CustomTextField(
                   controller: _nameController,
                   hintText: 'Name',
@@ -257,8 +238,12 @@ class _ProfileViewState extends State<ProfileView> {
                     LengthLimitingTextInputFormatter(10),
                   ],
                   validator: (v) {
-                    if (v == null || v.isEmpty) return 'Enter mobile number';
-                    if (v.length != 10) return 'Mobile number must be 10 digits';
+                    if (v == null || v.isEmpty) {
+                      return 'Enter mobile number';
+                    }
+                    if (v.length != 10) {
+                      return 'Mobile number must be 10 digits';
+                    }
                     return null;
                   },
                 ),
@@ -269,10 +254,8 @@ class _ProfileViewState extends State<ProfileView> {
                   isReadOnly: true,
                   onTap: _pickCountry,
                 ),
-
                 const SizedBox(height: 25),
 
-                // 🔹 Save Changes button
                 ElevatedButton(
                   onPressed: _updateUserProfile,
                   style: ElevatedButton.styleFrom(
@@ -285,10 +268,8 @@ class _ProfileViewState extends State<ProfileView> {
                     style: TextStyle(color: Colors.white),
                   ),
                 ),
-
                 const SizedBox(height: 15),
 
-                // 🔹 Logout button below Save Changes
                 ElevatedButton.icon(
                   onPressed: _logout,
                   icon: const Icon(Icons.logout, color: Colors.white),
@@ -297,7 +278,7 @@ class _ProfileViewState extends State<ProfileView> {
                     style: TextStyle(color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
+                    backgroundColor: Colors.lightBlueAccent,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 40, vertical: 12),
                   ),

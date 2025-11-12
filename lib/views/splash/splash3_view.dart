@@ -15,7 +15,7 @@ class Splash3View extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // Skip button (top right)
+
             Align(
               alignment: Alignment.topRight,
               child: Padding(
@@ -25,7 +25,7 @@ class Splash3View extends StatelessWidget {
                     try {
                       controller.navigateToSignup(context);
                     } catch (e) {
-                      // fallback if signup route not ready
+
                       controller.startSplashTimer(context, currentSplash: 2, duration: Duration.zero);
                     }
                   },
@@ -75,7 +75,7 @@ class Splash3View extends StatelessWidget {
 
             const Spacer(),
 
-            // Next button
+
             Align(
               alignment: Alignment.bottomRight,
               child: Padding(

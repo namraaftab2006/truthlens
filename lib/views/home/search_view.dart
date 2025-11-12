@@ -304,7 +304,6 @@ class _SearchViewState extends State<SearchView> {
   }
 }
 
-// -------------------- TEXT SELECTION VIEW --------------------
 
 class TextSelectionScreen extends StatefulWidget {
   final File imageFile;
@@ -521,7 +520,6 @@ class _TextHighlightPainter extends CustomPainter {
     final scaleX = displayWidth / imageWidth;
     final scaleY = displayHeight / imageHeight;
 
-    // Draw selection highlights
     for (final block in recognizedText.blocks) {
       for (final line in block.lines) {
         final lineRect = line.boundingBox;
@@ -532,7 +530,6 @@ class _TextHighlightPainter extends CustomPainter {
           lineRect.bottom * scaleY,
         );
 
-        // Draw faint line boundary to assist selection of full sentences
         paint
           ..style = PaintingStyle.stroke
           ..strokeWidth = 0.5
@@ -563,7 +560,7 @@ class _TextHighlightPainter extends CustomPainter {
       }
     }
 
-    // Draw current drag rectangle
+
     if (dragRect != null) {
       paint
         ..style = PaintingStyle.stroke

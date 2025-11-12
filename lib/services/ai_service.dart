@@ -5,15 +5,15 @@ class AiService {
 
   static const String baseUrl = "https://fake-newss.onrender.com";
 
-
   static Future<String> getApiInfo() async {
     try {
       final Uri url = Uri.parse("$baseUrl/");
       final response = await http.get(url);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && response.body.isNotEmpty) {
         final data = jsonDecode(response.body);
-        return data['message'] ?? "Welcome to the Fake News Detection API";
+        return data['message'] ??
+            "Welcome to the Fake News Detection API with Chatbot";
       } else {
         return "⚠️ API info error: ${response.statusCode}";
       }
@@ -23,27 +23,22 @@ class AiService {
     }
   }
 
-
-  static Future<String> predictNews(String text) async {
+  static Future<String> predictNews(String message) async {
     try {
       final Uri url = Uri.parse("$baseUrl/predict");
-
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'text': text}),
+        body: jsonEncode({'message': message}),
       );
 
       print("Predict raw response: ${response.body}");
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && response.body.isNotEmpty) {
         final data = jsonDecode(response.body);
-
-        // Flask returns "prediction" and "confidence"
-        final prediction = data['prediction'] ?? "No prediction";
-        final confidence = data['confidence'] ?? "N/A";
-
-        return "📰 Result: $prediction (Confidence: $confidence)";
+        return data['reply'] ??
+            data['prediction'] ??
+            "🤖 No prediction response received.";
       } else {
         return "⚠️ Prediction error: ${response.statusCode}";
       }
@@ -53,11 +48,9 @@ class AiService {
     }
   }
 
-
   static Future<String> sendMessage(String message) async {
     try {
       final Uri url = Uri.parse("$baseUrl/chatbot");
-
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -66,12 +59,10 @@ class AiService {
 
       print("Chatbot raw response: ${response.body}");
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && response.body.isNotEmpty) {
         final data = jsonDecode(response.body);
-
-
-        return data['response'] ??
-            data['reply'] ??
+        return data['reply'] ??
+            data['response'] ??
             "🤖 No reply from chatbot.";
       } else {
         return "⚠️ Chatbot error: ${response.statusCode}";
@@ -79,6 +70,22 @@ class AiService {
     } catch (e) {
       print("Chatbot error: $e");
       return "❌ Unable to connect to chatbot service.";
+    }
+  }
+
+  static Future<String> analyzeMessage(String message) async {
+    // Check if it looks like a news headline or full article
+    final lower = message.toLowerCase();
+    final bool looksLikeNews = lower.contains("news") ||
+        lower.contains("report") ||
+        lower.contains("says") ||
+        lower.contains("claims") ||
+        lower.split(" ").length > 8;
+
+    if (looksLikeNews) {
+      return await predictNews(message);
+    } else {
+      return await sendMessage(message);
     }
   }
 }

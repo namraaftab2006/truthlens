@@ -1,4 +1,4 @@
-// lib/views/auth/login_view.dart
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../controllers/auth_controller.dart';
@@ -51,7 +51,7 @@ class _LoginViewState extends State<LoginView> {
         ),
       );
 
-      // ✅ Navigate safely after current frame
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           Navigator.of(context).pushAndRemoveUntil(

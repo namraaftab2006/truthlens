@@ -85,11 +85,11 @@ class ThemeController extends ChangeNotifier {
   IconData get themeIcon {
     switch (_themeIndex) {
       case 1:
-        return Icons.light_mode; // currently Light
+        return Icons.light_mode;
       case 2:
-        return Icons.dark_mode; // currently Dark
+        return Icons.dark_mode;
       default:
-        return Icons.brightness_auto; // Default beige
+        return Icons.brightness_auto;
     }
   }
 }

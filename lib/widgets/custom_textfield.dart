@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // needed for TextInputFormatter
+import 'package:flutter/services.dart';
 
 class CustomTextField extends StatefulWidget {
   final TextEditingController controller;
@@ -12,7 +12,7 @@ class CustomTextField extends StatefulWidget {
   // NEW parameters
   final bool isReadOnly;
   final VoidCallback? onTap;
-  final List<TextInputFormatter>? inputFormatters; // 🔹 new optional parameter
+  final List<TextInputFormatter>? inputFormatters;
 
   const CustomTextField({
     super.key,
@@ -24,7 +24,7 @@ class CustomTextField extends StatefulWidget {
     this.textInputAction,
     this.isReadOnly = false,
     this.onTap,
-    this.inputFormatters, // optional inputFormatters
+    this.inputFormatters,
   });
 
   @override
@@ -62,7 +62,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
         style: const TextStyle(color: Colors.black),
         readOnly: widget.isReadOnly,
         onTap: widget.onTap,
-        inputFormatters: widget.inputFormatters, // 🔹 apply inputFormatters
+        inputFormatters: widget.inputFormatters,
         decoration: InputDecoration(
           hintText: widget.hintText,
           hintStyle: TextStyle(color: Colors.grey[600]),

@@ -32,10 +32,23 @@ android {
     }
 
     buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+        getByName("release") {
+            // ✅ Still using debug signing so `flutter run --release` works
             signingConfig = signingConfigs.getByName("debug")
+
+            // ✅ Enable shrinking + link our ProGuard rules file
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+
+        getByName("debug") {
+            // Debug build unchanged
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
@@ -43,15 +56,14 @@ android {
 flutter {
     source = "../.."
 }
+
 dependencies {
     // Import the Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:34.4.0"))
 
-
     // TODO: Add the dependencies for Firebase products you want to use
     // When using the BoM, don't specify versions in Firebase dependencies
     implementation("com.google.firebase:firebase-analytics")
-
 
     // Add the dependencies for any other desired Firebase products
     // https://firebase.google.com/docs/android/setup#available-libraries

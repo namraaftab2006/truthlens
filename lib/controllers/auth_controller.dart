@@ -1,23 +1,43 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-/// AuthController (MVC - Controller Layer)
-/// Handles all Firebase Authentication related logic and returns
-/// clean error messages back to the View.
 class AuthController {
-  // Firebase instances
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// ✅ Constructor — sets default Firebase language
   AuthController() {
-    _auth.setLanguageCode('en'); // prevents locale null warning
+    _auth.setLanguageCode('en');
   }
 
-  /// SIGN IN METHOD
-  /// Returns User on success, throws a String message on failure
+  /// Validates email format and domain
+  bool _isValidEmail(String email) {
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    );
+
+    if (!emailRegex.hasMatch(email)) return false;
+
+
+    const allowedDomains = [
+      'gmail.com',
+      'yahoo.com',
+      'outlook.com',
+      'hotmail.com',
+      'icloud.com',
+      'protonmail.com',
+      'akgec.ac.in'
+    ];
+
+    final domain = email.split('@').last.toLowerCase();
+    return allowedDomains.contains(domain);
+  }
+
   Future<User> signIn(String email, String password) async {
     try {
+      if (!_isValidEmail(email)) {
+        throw 'Please enter a valid email address (e.g., example@gmail.com)';
+      }
+
       final credential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
@@ -41,9 +61,6 @@ class AuthController {
     }
   }
 
-  /// CREATE ACCOUNT METHOD
-  /// Creates a user in Firebase Authentication and also stores data in Firestore
-  /// Includes extra optional profile fields (dob, phone, country)
   Future<User> createAccount(
       String name,
       String email,
@@ -53,6 +70,10 @@ class AuthController {
         String? country,
       }) async {
     try {
+      if (!_isValidEmail(email)) {
+        throw 'Please enter a valid email address (e.g., example@gmail.com)';
+      }
+
       final credential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
@@ -61,9 +82,7 @@ class AuthController {
 
       if (user == null) throw 'Account creation failed. Please try again.';
 
-
       await user.updateDisplayName(name);
-
 
       await _firestore.collection('users').doc(user.uid).set({
         'uid': user.uid,
@@ -94,7 +113,6 @@ class AuthController {
     }
   }
 
-
   Future<void> updateUserDetails({
     required String uid,
     String? name,
@@ -116,7 +134,6 @@ class AuthController {
       throw 'Failed to update user details: $e';
     }
   }
-
 
   Future<void> signOut() async {
     try {

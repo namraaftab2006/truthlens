@@ -1,4 +1,4 @@
-// lib/widgets/logo_widget.dart
+
 import 'package:flutter/material.dart';
 
 class LogoWidget extends StatelessWidget {

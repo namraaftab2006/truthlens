@@ -23,7 +23,7 @@ class SignupView extends StatelessWidget {
                 const LogoWidget(width: 300, height: 300),
                 const SizedBox(height: 28),
 
-                // Sign Up button
+
                 SizedBox(
                   width: double.infinity,
                   height: 52,
@@ -47,7 +47,7 @@ class SignupView extends StatelessWidget {
 
                 const SizedBox(height: 12),
 
-                // Login button
+
                 SizedBox(
                   width: double.infinity,
                   height: 52,

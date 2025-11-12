@@ -12,11 +12,11 @@ class ShimmerLoader extends StatelessWidget {
     final themeController = Provider.of<ThemeController>(context);
     final theme = Theme.of(context);
 
-    // 🎨 Detect current theme mode based on themeIndex
-    final int index = themeController.themeIndex;
-    final bool isDark = index == 2; // 0 = Default, 1 = Light, 2 = Dark
 
-    // 🌗 Adjust shimmer colors based on theme
+    final int index = themeController.themeIndex;
+    final bool isDark = index == 2;
+
+
     final baseColor = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
     final highlightColor = isDark ? Colors.grey.shade600 : Colors.grey.shade100;
 
@@ -30,7 +30,7 @@ class ShimmerLoader extends StatelessWidget {
           child: Container(
             height: 200,
             decoration: BoxDecoration(
-              // ✅ Uses theme card color dynamically
+
               color: theme.cardColor,
               borderRadius: BorderRadius.circular(15),
               border: Border.all(

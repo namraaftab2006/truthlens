@@ -113,7 +113,6 @@ class _NewsCardState extends State<NewsCard> {
     }
   }
 
-  // ✅ UPDATED to sync arrays in user doc (for ProfileView)
   Future<void> _toggleLike() async {
     final user = _auth.currentUser;
     if (user == null) {
@@ -144,16 +143,14 @@ class _NewsCardState extends State<NewsCard> {
           {
             'title': widget.article.title,
             'link': widget.article.link,
-            'likes': isLiked
-                ? currentLikes + 1
-                : (currentLikes - 1).clamp(0, 999999),
+            'likes':
+            isLiked ? currentLikes + 1 : (currentLikes - 1).clamp(0, 999999),
           },
           SetOptions(merge: true),
         );
 
         if (isLiked) {
-          tx.set(
-              userLikeRef,
+          tx.set(userLikeRef,
               {'liked': true, 'timestamp': FieldValue.serverTimestamp()});
           tx.update(userRef, {
             'likedArticles': FieldValue.arrayUnion([docId])
@@ -170,7 +167,6 @@ class _NewsCardState extends State<NewsCard> {
     }
   }
 
-  // ✅ UPDATED to sync arrays in user doc (for ProfileView)
   Future<void> _toggleSave() async {
     final user = _auth.currentUser;
     if (user == null) {
@@ -304,6 +300,27 @@ class _NewsCardState extends State<NewsCard> {
     }
   }
 
+  Widget _circleIconButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: IconButton(icon: Icon(icon, color: color), onPressed: onPressed),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final pastelColors = [
@@ -363,8 +380,8 @@ class _NewsCardState extends State<NewsCard> {
                 width: double.infinity,
                 decoration: BoxDecoration(
                     color: Colors.grey[300],
-                    borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(15))),
+                    borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(15))),
                 child: const Icon(Icons.image_not_supported,
                     size: 60, color: Colors.grey),
               ),
@@ -390,46 +407,46 @@ class _NewsCardState extends State<NewsCard> {
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       Row(children: [
-                        IconButton(
-                            icon: Icon(
-                              isLiked
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              color:
-                              isLiked ? Colors.red : Constants.likeColor,
-                            ),
-                            onPressed: _toggleLike),
+                        _circleIconButton(
+                          icon: isLiked
+                              ? Icons.favorite
+                              : Icons.favorite_border,
+                          color:
+                          isLiked ? Colors.red : Constants.likeColor,
+                          onPressed: _toggleLike,
+                        ),
+                        const SizedBox(width: 4),
                         Text('$likeCount', style: TextStyle(color: textColor)),
                       ]),
-                      IconButton(
-                          icon: Icon(
-                            isSaved
-                                ? Icons.bookmark
-                                : Icons.bookmark_border,
-                            color: isSaved
-                                ? Constants.accentColor
-                                : Colors.grey,
-                          ),
-                          onPressed: _toggleSave),
-                      IconButton(
-                          icon: const Icon(Icons.comment, color: Colors.grey),
-                          onPressed: _showCommentsSheet),
-                      IconButton(
-                          icon: const Icon(Icons.share,
-                              color: Constants.accentColor),
-                          onPressed: () {
-                            if (widget.article.link != null) {
-                              Share.share(widget.article.link!);
-                            }
-                          }),
-                      IconButton(
-                          icon: Icon(
-                            isSpeaking
-                                ? Icons.stop_circle_outlined
-                                : Icons.volume_up,
-                            color: Constants.accentColor,
-                          ),
-                          onPressed: _toggleSpeech),
+                      _circleIconButton(
+                        icon: isSaved
+                            ? Icons.bookmark
+                            : Icons.bookmark_border,
+                        color:
+                        isSaved ? Constants.accentColor : Colors.grey,
+                        onPressed: _toggleSave,
+                      ),
+                      _circleIconButton(
+                        icon: Icons.comment,
+                        color: Colors.grey,
+                        onPressed: _showCommentsSheet,
+                      ),
+                      _circleIconButton(
+                        icon: Icons.share,
+                        color: Constants.accentColor,
+                        onPressed: () {
+                          if (widget.article.link != null) {
+                            Share.share(widget.article.link!);
+                          }
+                        },
+                      ),
+                      _circleIconButton(
+                        icon: isSpeaking
+                            ? Icons.stop_circle_outlined
+                            : Icons.volume_up,
+                        color: Constants.accentColor,
+                        onPressed: _toggleSpeech,
+                      ),
                     ],
                   ),
                 ],
